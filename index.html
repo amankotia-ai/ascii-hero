@@ -166,7 +166,7 @@
   // and loses all of its TV shape at 85% of the scroll, then holds.
   const END_AT = 0.85;
   const START_WIDTH = 0.78;     // of the viewport width
-  const START_TV = 0.5;         // TV shape strength on load (1 = full Revelatio curve)
+  const START_TV = 0;           // TV shape strength on load (0 = flat screen, 1 = full Revelatio curve)
   // Like revelatio.studio, the screen grows to the full viewport but is cropped by a
   // frame inset from the window edges, so it never runs edge to edge.
   const FRAME_INSET = 30;
@@ -455,11 +455,12 @@
 
   // On load: set the description at the largest size that wraps to exactly DESC_LINES lines in a
   // column centred on the TV, then keep the TV's width but trim its height (the video crops top
-  // and bottom) so it fits between the top bar (+ TOP_GAP) and the description (+ COPY_GAP).
+  // and bottom) so it fits between the top bar and the description, with an equal gap of
+  // VIDEO_GAP of the window height (at least MIN_VIDEO_GAP) above and below it.
   const desc = document.querySelector('.hero-desc');
   const top = document.querySelector('.hero-top');
-  const COPY_GAP = 24;
-  const TOP_GAP = 32;
+  const VIDEO_GAP = 0.075;        // space above and below the video on load, as a share of window height
+  const MIN_VIDEO_GAP = 40;
   const COPY_WIDTH = 0.62;        // of the TV's visible width (wider on phones)
   const PHONE_COPY_WIDTH = 0.9;
   const DESC_LINES = 3;
@@ -535,7 +536,8 @@
     const descTop = vh - margin - desc.offsetHeight;
 
     // TV: full width, height trimmed to the band between the top bar and the description.
-    const bandTop = barBottom + TOP_GAP, bandH = descTop - COPY_GAP - bandTop;
+    const gap = Math.max(MIN_VIDEO_GAP, vh * VIDEO_GAP);
+    const bandTop = barBottom + gap, bandH = descTop - gap - bandTop;
     const h = Math.max(h0 * 0.25, Math.min(h0, bandH * 2 / (topExt + bottomExt)));
     const visibleH = h / 2 * (topExt + bottomExt);
     const centreY = bandTop + Math.max(0, (bandH - visibleH) / 2) + h / 2 * topExt;   // CSS px from top
@@ -543,8 +545,9 @@
 
     // Top bar spans the TV's visible width near its top: the corner width plus the part of the
     // shader's soft edge that still reads as picture (it fades outward past the shape).
-    const fade = state.cell * 0.8 * w0 / Math.min(w0, h);
-    top.style.left = top.style.right = Math.max(margin, (vw - w0 * cornerExt) / 2 - fade * 0.6) + 'px';
+    // The fade can only spill as far as the screen rectangle, so a flat screen has a crisp edge.
+    const fade = Math.min(state.cell * 0.8 * w0 / Math.min(w0, h) * 0.6, w0 * (1 - cornerExt) / 2);
+    top.style.left = top.style.right = Math.max(margin, (vw - w0 * cornerExt) / 2 - fade) + 'px';
   }
   addEventListener('resize', fitLayout);
   video.addEventListener('loadedmetadata', fitLayout);

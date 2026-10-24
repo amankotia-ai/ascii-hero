@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abhishek Mankotia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d0c;
+    --panel: rgba(14, 17, 15, 0.82);
+    --fg: #dfe3dc;
+    --muted: #8b938c;
+    --line: rgba(223, 227, 220, 0.14);
+    --accent: #b9c9a8;
+    --page: #000000;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--page); color: var(--fg); overflow-x: clip;
+    font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .scroll { height: 200vh; position: relative; }
+  .stage { position: sticky; top: 0; height: 100vh; }
+  canvas { display: block; width: 100%; height: 100%; background: #000; }
+  video { display: none; }
+  html.lenis, html.lenis body { height: auto; }
+  .lenis.lenis-smooth { scroll-behavior: auto !important; }
+  .lenis.lenis-stopped { overflow: hidden; }
+
+  .panel { position: fixed; left: 16px; bottom: 16px; width: 280px; padding: 14px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    display: grid; gap: 10px; transition: opacity .2s; z-index: 3; }
+  .panel.hidden { opacity: 0; pointer-events: none; }
+  .panel h1 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .row { display: grid; grid-template-columns: 84px 1fr 36px; align-items: center; gap: 8px; }
+  .row label, .muted { color: var(--muted); }
+  .row output { text-align: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=text] { width: 100%; background: transparent; color: var(--fg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 7px; font: inherit; }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  button { flex: 1; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 8px; font: inherit; cursor: pointer; }
+  button[aria-pressed=true] { background: var(--fg); color: var(--bg); }
+  .keys { font-size: 11px; }
+  .err { position: fixed; inset: 0; display: none; place-items: center; padding: 16px; text-align: center; color: var(--muted); }
+
+  /* Hero copy, styled after signal-a.studio's type system: a bracketed grotesk micro header,
+     and a full-width headline that sets a thin serif against heavy grotesk key words, every
+     line justified edge to edge. Licensed faces are used when installed, with the closest
+     free matches as fallbacks. */
+  :root {
+    --margin: 40px;
+    --grotesk: "Neue Haas Grotesk Text Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --display: "Neue Haas Grotesk Display Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --serif: "PP Editorial New", "Instrument Serif", "Times New Roman", serif;
+    --mono: "GT America Mono", "DM Mono", ui-monospace, Menlo, monospace;
+  }
+  /* The top bar (menu and name) and the description are pinned; scroll drives a word-by-word
+     masked exit (top bar up, description down). Script fits both to the TV as it is on load. */
+  .hero-top, .hero-desc {
+    position: fixed; left: var(--margin); right: var(--margin); margin: 0; z-index: 2; pointer-events: none;
+    color: #fff; mix-blend-mode: difference; text-transform: uppercase;
+    font-family: var(--serif); font-weight: 400; line-height: 0.86;
+  }
+  .hero-name b, .hero-desc b { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; }
+  /* Top bar: two menu items either side of the name, no wider than the TV on load. */
+  .hero-top {
+    top: var(--margin); display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr;
+    column-gap: 25px; align-items: start;
+  }
+  .hero-menu { display: contents; }
+  .hero-name { margin: 0 8px; font-size: 17px; font-weight: 400; text-align: center; white-space: nowrap; }
+  /* Menu items after signal-a.studio: light mono labels on a 1px rule; the active item has a dot. */
+  .item {
+    position: relative; display: flex; align-items: center; gap: 8px; padding-bottom: 10px;
+    font: 300 12px/1 var(--mono); color: inherit; text-decoration: none; pointer-events: auto;
+  }
+  .item::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor;
+    transform: scaleX(var(--line, 1)); transform-origin: left;
+  }
+  .item .dot { display: block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .hero-desc {
+    bottom: var(--margin);
+    font-size: 2.4vw; text-align: justify; text-align-last: justify;
+  }
+  /* Each word sits in a clip box the size of its line; the inner span slides out of it. */
+  .w { display: inline-block; }
+  .wi { display: inline-block; will-change: transform; }
+  .hero-top .w { clip-path: inset(0 -0.3em -0.4em -0.3em); }
+  .hero-desc .w { clip-path: inset(-0.4em -0.3em 0 -0.3em); }
+  .hero-desc .dot, .item .dot { vertical-align: 0.02em; }
+  .hero-desc .dot {
+    display: inline-block; width: 0.62em; height: 0.62em; border-radius: 50%;
+    background: currentColor; vertical-align: 0.02em; margin-right: 0.08em;
+  }
+  @media (max-width: 767px) {
+    :root { --margin: 20px; }
+    .hero-top { grid-template-columns: 1fr; }
+    .hero-menu { display: none; }
+    .hero-name { font-size: 14px; }
+    .hero-desc { font-size: 6vw; }
+  }
+
+  @media (max-width: 520px) {
+    .panel { left: 16px; right: 16px; width: auto; }
+  }
+</style>
+</head>
+<body>
+<video id="vid" src="clip.mp4" muted loop playsinline autoplay crossorigin="anonymous"></video>
+<main class="scroll">
+  <div class="stage"><canvas id="gl"></canvas></div>
+  <header class="hero-top">
+    <nav class="hero-menu" aria-label="Primary">
+      <a class="item" href="#work" aria-current="page"><span class="dot" aria-hidden="true"></span>Work</a>
+      <a class="item" href="#archive">Archive</a>
+    </nav>
+    <h1 class="hero-name">( <b>Abhishek Mankotia</b> )</h1>
+    <nav class="hero-menu" aria-label="Secondary">
+      <a class="item" href="#about">About</a>
+      <a class="item" href="#contact">Contact</a>
+    </nav>
+  </header>
+  <p class="hero-desc"><span class="dot" aria-hidden="true"></span> An independent <b>product designer</b> &amp; <b>engineer</b> crafting interfaces, motion and code, from first sketch to <b>shipped product</b></p>
+</main>
+<div class="err" id="err">WebGL is not available in this browser.</div>
+
+<div class="panel hidden" id="panel">
+  <h1>ASCII Studio</h1>
+  <div class="row"><label for="cell">Cell size</label><input id="cell" type="range" min="3" max="28" step="1" value="6"><output for="cell"></output></div>
+  <div class="row"><label for="contrast">Contrast</label><input id="contrast" type="range" min="0.2" max="3" step="0.05" value="0.5"><output for="contrast"></output></div>
+  <div class="row"><label for="bright">Brightness</label><input id="bright" type="range" min="-0.5" max="1" step="0.01" value="0.5"><output for="bright"></output></div>
+  <div class="row"><label for="dot">Glyph zoom</label><input id="dot" type="range" min="0.5" max="3" step="0.05" value="1.6"><output for="dot"></output></div>
+  <div class="row"><label for="bloom">Bloom</label><input id="bloom" type="range" min="0" max="1.5" step="0.01" value="0.75"><output for="bloom"></output></div>
+  <div class="row"><label for="ramp">Glyphs</label><input id="ramp" type="text" value="@#W$9876543210?!abc;:+=-,._  " spellcheck="false" style="grid-column: span 2"></div>
+  <div class="seg">
+    <button id="orig" aria-pressed="false">Original</button>
+    <button id="play" aria-pressed="false">Pause</button>
+  </div>
+  <div class="muted keys">H show/hide panel · O original · Space pause</div>
+</div>
+
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('gl');
+  const video = document.getElementById('vid');
+  // ?export keeps the drawing buffer so frames can be read back for video export;
+  // &frame=N sets an even N px frame on every side for that export.
+  const params = new URLSearchParams(location.search);
+  const exporting = params.has('export');
+  const exportFrame = exporting && params.has('frame') ? Number(params.get('frame')) : null;
+  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: exporting });
+  if (!gl) { document.getElementById('err').style.display = 'grid'; return; }
+
+  // Look settings match the revelatio.studio ASCII overlay; tv is driven by scroll.
+  const state = {
+    cell: 6, contrast: 0.5, bright: 0.5, dot: 1.6, bloom: 0.75, original: false,
+    tv: 1,
+  };
+
+  // Scroll choreography, after revelatio.studio: the screen reaches full viewport
+  // and loses all of its TV shape at 85% of the scroll, then holds.
+  const END_AT = 0.85;
+  const START_WIDTH = 0.78;     // of the viewport width
+  const START_TV = 0.5;         // TV shape strength on load (1 = full Revelatio curve)
+  // Like revelatio.studio, the screen grows to the full viewport but is cropped by a
+  // frame inset from the window edges, so it never runs edge to edge.
+  const FRAME_INSET = 30;
+  const PHONE_FRAME_SIDES = 12;
+  // Phones get a vertical 9:16 screen; the video is centre-cropped to fill it.
+  const PHONE_MAX = 767;
+  const PHONE_WIDTH = 0.86;
+  const PHONE_WARP = 0.5;       // half the curve and bulge of desktop
+
+  const vert = `
+    attribute vec2 aPos;
+    void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+  `;
+
+  // The screen is a rectangle inside the full-page canvas (uOrigin, uRes).
+  // Cells stay square to the screen; only the video lookup is barrel-distorted,
+  // and a TV-tube mask cuts the outline. Both scale with uTv (1 = TV, 0 = flat).
+  const frag = `
+    precision highp float;
+    uniform sampler2D uVideo;
+    uniform sampler2D uAtlas;
+    uniform vec2 uRes;
+    uniform vec2 uOrigin;
+    uniform float uVidAspect;
+    uniform float uCell;
+    uniform float uGlyphs;
+    uniform float uContrast;
+    uniform float uBright;
+    uniform float uDot;
+    uniform float uBloom;
+    uniform float uOriginal;
+    uniform float uTv;
+    uniform float uWarp;   // scales the curve and bulge (gentler on phones)
+    uniform vec4 uClip;    // frame the screen is cropped to: left, bottom, right, top in canvas px
+
+    // object-fit: cover
+    vec2 cover(vec2 uv) {
+      float ca = uRes.x / uRes.y;
+      vec2 s = vec2(1.0);
+      if (ca > uVidAspect) s.y = uVidAspect / ca; else s.x = ca / uVidAspect;
+      return (uv - 0.5) * s + 0.5;
+    }
+
+    // Bulge the picture out from the centre like a CRT face.
+    vec2 barrel(vec2 uv, float k) {
+      vec2 p = uv * 2.0 - 1.0;
+      float aspect = uRes.x / uRes.y;
+      p.x *= aspect;
+      p *= 1.0 + k * dot(p, p);
+      p.x /= aspect;
+      return p * 0.5 + 0.5;
+    }
+
+    // Screen uv to video uv: bulge, cover, then a fixed 18% zoom toward the centre.
+    vec2 videoUv(vec2 uv) {
+      uv = clamp(barrel(uv, 0.28 * uTv * uWarp), 0.001, 0.999);
+      return mix(vec2(0.5), cover(uv), 0.82);
+    }
+
+    // Video lookup snapped to a 260-step grid, with the Kling watermark (bottom right)
+    // hidden by mirroring the empty floor from bottom left.
+    vec3 src(vec2 uv) {
+      uv = floor(uv * 260.0) / 260.0;
+      if (uv.x > 0.865 && uv.y < 0.08) uv.x = 1.0 - uv.x;
+      return texture2D(uVideo, uv).rgb;
+    }
+
+    // Signed distance to a rounded TV tube: a box whose edges bow outward in the middle.
+    float tube(vec2 p, vec2 size, float sideBow, float topBow, float bottomBow) {
+      float yn = clamp(p.y / size.y, -1.0, 1.0);
+      float xn = clamp(p.x / size.x, -1.0, 1.0);
+      float halfW = size.x + sideBow * (1.0 - yn * yn);
+      float halfH = size.y + (p.y < 0.0 ? bottomBow : topBow) * (1.0 - xn * xn);
+      vec2 d = abs(p) - vec2(halfW, halfH);
+      return max(d.x, d.y);
+    }
+
+    void main() {
+      vec2 frag = gl_FragCoord.xy - uOrigin;
+      vec2 uv = frag / uRes;
+      if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+      if (gl_FragCoord.x < uClip.x || gl_FragCoord.y < uClip.y || gl_FragCoord.x > uClip.z || gl_FragCoord.y > uClip.w) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
+      }
+
+      // One sample per square cell, at its centre.
+      vec2 cellId = floor(frag / uCell);
+      vec2 vuv = videoUv((cellId + 0.5) * uCell / uRes);
+      vec3 col = src(vuv);
+
+      // Brighter cells take denser glyphs (the ramp runs dense to blank).
+      float l = dot(col, vec3(0.299, 0.587, 0.114));
+      l = clamp((l - 0.5) * uContrast + 0.5 + uBright, 0.0, 1.0);
+      float idx = floor((1.0 - l) * (uGlyphs - 1.0) + 0.5);
+
+      // The glyph is magnified by uDot and cropped to its cell.
+      vec2 local = (mod(frag, uCell) - uCell * 0.5) / (uCell * 0.5 * max(uDot, 0.1));
+      vec2 gp = clamp(local * 0.5 + 0.5, 0.0, 1.0);
+      float g = texture2D(uAtlas, vec2((idx + gp.x) / uGlyphs, gp.y)).r;
+      vec3 ascii = col * g;
+
+      // Bloom: a small blur of the picture, added where it is brightest.
+      vec2 px = 2.0 / uRes;
+      vec3 blur = (src(vuv + vec2(px.x, 0.0)) + src(vuv - vec2(px.x, 0.0)) +
+                   src(vuv + vec2(0.0, px.y)) + src(vuv - vec2(0.0, px.y))) * 0.25;
+      float peak = max(max(blur.r, blur.g), blur.b);
+      vec3 color = ascii + blur * smoothstep(0.58, 1.0, peak) * uBloom;
+      color = mix(color, src(videoUv(uv)), uOriginal);
+
+      // TV outline, softened over most of a cell.
+      vec2 p = uv * 2.0 - 1.0;
+      vec2 size = mix(vec2(1.0), vec2(0.93, 0.80), uTv);
+      float bow = uTv * uWarp;
+      float dist = tube(p, size, 0.035 * bow, 0.14 * bow, 0.15 * bow);
+      float soft = uCell * 0.8 * 2.0 / min(uRes.x, uRes.y);
+      float mask = 1.0 - smoothstep(0.0, soft, dist);
+
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0) * mask, 1.0);
+    }
+  `;
+
+  function compile(type, srcText) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, srcText);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vert));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  const U = {};
+  ['uVideo', 'uAtlas', 'uRes', 'uOrigin', 'uVidAspect', 'uCell', 'uGlyphs', 'uContrast', 'uBright', 'uDot',
+   'uBloom', 'uOriginal', 'uTv', 'uWarp', 'uClip'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+  function makeTex(unit) {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return t;
+  }
+  const videoTex = makeTex(0);
+  const atlasTex = makeTex(1);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+  // Glyph atlas: one row of square 52px glyphs, white on black, ordered dense to blank.
+  // Uploaded without the Y flip, as on revelatio.studio, so glyphs sample upside down.
+  let glyphCount = 1;
+  function buildAtlas(ramp) {
+    const chars = [...(ramp || '@ ')];
+    glyphCount = chars.length;
+    const size = 52;
+    const c = document.createElement('canvas');
+    c.width = size * chars.length; c.height = size;
+    const x = c.getContext('2d');
+    x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#fff';
+    x.font = `700 ${Math.floor(size * 0.78)}px Menlo, Monaco, "Courier New", monospace`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    chars.forEach((chr, i) => x.fillText(chr, i * size + size * 0.5, size * 0.54));
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, atlasTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  }
+
+  let dpr = 1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  // 0 at the top of the page, 1 once the screen is full viewport (85% of the scroll).
+  function scrolled() {
+    if (exporting) return 1;    // video export renders the end-of-scroll state only
+    const max = document.documentElement.scrollHeight - innerHeight;
+    return max > 0 ? Math.min(Math.max(scrollY / max, 0), 1) : 0;
+  }
+  function progress() {
+    return Math.min(scrolled() / END_AT, 1);
+  }
+
+  // Wrap every word (and the dot) of an element in a clip box with a sliding inner span.
+  function splitWords(root) {
+    const inners = [];
+    const wrap = node => {
+      const w = document.createElement('span'), wi = document.createElement('span');
+      w.className = 'w'; wi.className = 'wi';
+      node.parentNode.insertBefore(w, node);
+      w.appendChild(wi); wi.appendChild(node);
+      inners.push(wi);
+    };
+    const walk = el => {
+      for (const node of [...el.childNodes]) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const parts = node.textContent.split(/(\s+)/).filter(Boolean);
+          for (const part of parts) {
+            const t = document.createTextNode(part);
+            node.parentNode.insertBefore(t, node);
+            if (part.trim()) wrap(t);
+          }
+          node.remove();
+        } else if (node.classList && node.classList.contains('dot')) {
+          wrap(node);
+        } else {
+          walk(node);
+        }
+      }
+    };
+    walk(root);
+    return inners;
+  }
+
+  // Scroll-driven exit: over the first TEXT_OUT of the scroll, words slide out of their clip
+  // boxes one after another, left to right; scrolling back brings them in again.
+  const TEXT_OUT = 0.3;
+  const STAGGER = 0.5;          // share of the exit spent spreading starts across the words
+  const exits = [
+    { words: splitWords(document.querySelector('.hero-top')), dir: -1 },
+    { words: splitWords(document.querySelector('.hero-desc')), dir: 1 },
+  ];
+  const items = [...document.querySelectorAll('.hero-menu .item')];
+  let lastOut = -1;
+  function animateText() {
+    const out = Math.min(scrolled() / TEXT_OUT, 1);
+    if (out === lastOut) return;
+    lastOut = out;
+    for (const { words, dir } of exits) {
+      const n = words.length;
+      words.forEach((wi, i) => {
+        const start = n > 1 ? i / (n - 1) * STAGGER : 0;
+        const t = Math.min(Math.max((out - start) / (1 - STAGGER), 0), 1);
+        const e = t * t * (3 - 2 * t);
+        wi.style.transform = e ? `translateY(${dir * e * 115}%)` : '';
+      });
+    }
+    // Menu rules retract to the left, staggered like the words.
+    items.forEach((item, i) => {
+      const start = items.length > 1 ? i / (items.length - 1) * STAGGER : 0;
+      const t = Math.min(Math.max((out - start) / (1 - STAGGER), 0), 1);
+      item.style.setProperty('--line', 1 - t * t * (3 - 2 * t));
+      item.style.pointerEvents = t > 0.5 ? 'none' : '';
+    });
+  }
+
+  // Screen rectangle in canvas pixels (GL origin bottom left): grows from its load-time TV
+  // rectangle (set by fitLayout) to the whole viewport.
+  let startRect = null;
+  function naturalTv(videoAspect) {
+    const vw = canvas.width, vh = canvas.height;
+    const phone = canvas.clientWidth <= PHONE_MAX;
+    const aspect = phone ? 9 / 16 : videoAspect;
+    const w = Math.min(vw * (phone ? PHONE_WIDTH : START_WIDTH), vh * (phone ? 0.78 : 0.9) * aspect);
+    return [w, w / aspect];
+  }
+  function screenRect(t, videoAspect) {
+    const vw = canvas.width, vh = canvas.height;
+    if (!startRect) {
+      const [w0, h0] = naturalTv(videoAspect);
+      startRect = [(vw - w0) / 2, (vh - h0) / 2, w0, h0];
+    }
+    const [x0, y0, w0, h0] = startRect;
+    return [x0 * (1 - t), y0 * (1 - t), w0 + (vw - w0) * t, h0 + (vh - h0) * t];
+  }
+
+  // On load: set the description at the largest size that wraps to exactly DESC_LINES lines in a
+  // column centred on the TV, then keep the TV's width but trim its height (the video crops top
+  // and bottom) so it fits between the top bar (+ TOP_GAP) and the description (+ COPY_GAP).
+  const desc = document.querySelector('.hero-desc');
+  const top = document.querySelector('.hero-top');
+  const COPY_GAP = 24;
+  const TOP_GAP = 32;
+  const COPY_WIDTH = 0.62;        // of the TV's visible width (wider on phones)
+  const PHONE_COPY_WIDTH = 0.9;
+  const DESC_LINES = 3;
+
+  // Size the name so its capitals run from the menu labels' cap line down to the menu rule,
+  // and shift it so they line up. Returns the bottom of the top bar (the rule, or the name).
+  const nameEl = document.querySelector('.hero-name');
+  const measure = document.createElement('canvas').getContext('2d');
+  function capMetrics(el, size) {
+    const cs = getComputedStyle(el);
+    measure.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+    const m = measure.measureText('H');
+    return { ascent: m.fontBoundingBoxAscent, cap: m.actualBoundingBoxAscent };
+  }
+  function capTop(textNode, el) {
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const { ascent, cap } = capMetrics(el, parseFloat(getComputedStyle(el).fontSize));
+    return range.getBoundingClientRect().top + ascent - cap;
+  }
+  function fitName() {
+    const label = document.querySelector('.hero-menu .item');
+    const words = [...top.querySelectorAll('.wi')];
+    const saved = words.map(w => w.style.transform);
+    words.forEach(w => { w.style.transform = ''; });
+    nameEl.style.fontSize = ''; nameEl.style.position = nameEl.style.top = '';
+    let bottom = nameEl.getBoundingClientRect().bottom;
+    if (label && label.offsetParent) {
+      const labelText = [...label.querySelectorAll('.wi')].map(w => w.firstChild).find(n => n.nodeType === Node.TEXT_NODE);
+      const bold = nameEl.querySelector('b');
+      const nameText = bold.querySelector('.wi').firstChild;
+      const rule = label.getBoundingClientRect().bottom - 1;      // top of the 1px rule
+      const capStart = capTop(labelText, label);
+      const capRatio = capMetrics(bold, 100).cap / 100;
+      nameEl.style.fontSize = (rule - capStart) / capRatio + 'px';
+      nameEl.style.position = 'relative';
+      nameEl.style.top = capStart - capTop(nameText, bold) + 'px';
+      bottom = rule + 1;
+    }
+    words.forEach((w, i) => { w.style.transform = saved[i]; });
+    lastOut = -1;
+    return bottom;
+  }
+  function fitLayout() {
+    if (!desc || !top) return;
+    const aspect = video.videoWidth ? video.videoWidth / video.videoHeight : 16 / 9;
+    const phone = canvas.clientWidth <= PHONE_MAX;
+    const warp = phone ? PHONE_WARP : 1;
+    const tv = START_TV;   // matches the shader's tube() inputs on load
+    const topExt = 1 - 0.2 * tv + 0.14 * tv * warp;     // visible half-heights above/below centre
+    const bottomExt = 1 - 0.2 * tv + 0.15 * tv * warp;   // in units of the rect's half-height
+    const widthExt = 1 - 0.07 * tv + 0.035 * tv * warp;   // widest, halfway down (sides bow out)
+    const cornerExt = 1 - 0.07 * tv;                       // at the top and bottom corners
+    const vw = canvas.clientWidth, vh = canvas.clientHeight;
+    const [w0, h0] = naturalTv(aspect).map(v => v / dpr);
+
+    // Top bar height (name fitted to the menu); its width is set once the TV height is known.
+    desc.style.fontSize = ''; desc.style.left = desc.style.right = '';
+    const margin = parseFloat(getComputedStyle(desc).left);
+    const barBottom = fitName();
+
+    // Description: width decides the size, so it always fills DESC_LINES lines.
+    const column = w0 * widthExt * (phone ? PHONE_COPY_WIDTH : COPY_WIDTH);
+    desc.style.left = desc.style.right = Math.max(margin, (vw - column) / 2) + 'px';
+    const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) / parseFloat(getComputedStyle(desc).fontSize);
+    const lines = size => { desc.style.fontSize = size + 'px'; return Math.round(desc.offsetHeight / (size * lineHeight)); };
+    let lo = 6, hi = 200;
+    for (let i = 0; i < 30 && hi - lo > 0.05; i++) {
+      const mid = (lo + hi) / 2;
+      if (lines(mid) <= DESC_LINES) lo = mid; else hi = mid;
+    }
+    desc.style.fontSize = lo + 'px';
+    const descTop = vh - margin - desc.offsetHeight;
+
+    // TV: full width, height trimmed to the band between the top bar and the description.
+    const bandTop = barBottom + TOP_GAP, bandH = descTop - COPY_GAP - bandTop;
+    const h = Math.max(h0 * 0.25, Math.min(h0, bandH * 2 / (topExt + bottomExt)));
+    const visibleH = h / 2 * (topExt + bottomExt);
+    const centreY = bandTop + Math.max(0, (bandH - visibleH) / 2) + h / 2 * topExt;   // CSS px from top
+    startRect = [(vw - w0) / 2 * dpr, canvas.height - (centreY + h / 2) * dpr, w0 * dpr, h * dpr];
+
+    // Top bar spans the TV's visible width near its top: the corner width plus the part of the
+    // shader's soft edge that still reads as picture (it fades outward past the shape).
+    const fade = state.cell * 0.8 * w0 / Math.min(w0, h);
+    top.style.left = top.style.right = Math.max(margin, (vw - w0 * cornerExt) / 2 - fade * 0.6) + 'px';
+  }
+  addEventListener('resize', fitLayout);
+  video.addEventListener('loadedmetadata', fitLayout);
+  document.fonts.ready.then(fitLayout);
+  fitLayout();
+
+  // Lenis smooth scroll, driven from the same rAF loop as the shader.
+  const lenis = window.Lenis && !exporting ? new Lenis({ lerp: 0.08, wheelMultiplier: 0.9, smoothWheel: true }) : null;
+
+  function frame(time) {
+    if (lenis) lenis.raf(time);
+    animateText();
+    if (video.readyState >= 2) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, videoTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+
+      const t = progress();
+      state.tv = (1 - t) * START_TV;
+      const aspect = video.videoWidth / video.videoHeight;
+      const [sx, sy, sw, sh] = screenRect(t, aspect);
+
+      gl.uniform1i(U.uVideo, 0);
+      gl.uniform1i(U.uAtlas, 1);
+      gl.uniform2f(U.uOrigin, sx, sy);
+      gl.uniform2f(U.uRes, sw, sh);
+      gl.uniform1f(U.uVidAspect, aspect);
+      gl.uniform1f(U.uCell, state.cell * dpr);
+      gl.uniform1f(U.uGlyphs, glyphCount);
+      gl.uniform1f(U.uContrast, state.contrast);
+      gl.uniform1f(U.uBright, state.bright);
+      gl.uniform1f(U.uDot, state.dot);
+      gl.uniform1f(U.uBloom, state.bloom);
+      gl.uniform1f(U.uOriginal, state.original ? 1 : 0);
+      gl.uniform1f(U.uTv, state.tv);
+      const phone = canvas.clientWidth <= PHONE_MAX;
+      gl.uniform1f(U.uWarp, phone ? PHONE_WARP : 1);
+      const side = (exportFrame ?? (phone ? PHONE_FRAME_SIDES : FRAME_INSET)) * dpr, edge = (exportFrame ?? FRAME_INSET) * dpr;
+      gl.uniform4f(U.uClip, side, edge, canvas.width - side, canvas.height - edge);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Controls
+  const bind = (id, key, fmt = v => v) => {
+    const el = document.getElementById(id);
+    const out = el.parentElement.querySelector('output');
+    const set = () => { state[key] = parseFloat(el.value); if (out) out.textContent = fmt(state[key]); };
+    el.addEventListener('input', set); set();
+  };
+  bind('cell', 'cell', v => v + 'px');
+  bind('contrast', 'contrast', v => v.toFixed(2));
+  bind('bright', 'bright', v => v.toFixed(2));
+  bind('dot', 'dot', v => v.toFixed(2) + '×');
+  bind('bloom', 'bloom', v => v.toFixed(2));
+
+  const ramp = document.getElementById('ramp');
+  ramp.addEventListener('input', () => buildAtlas(ramp.value));
+  buildAtlas(ramp.value);
+
+  const origBtn = document.getElementById('orig');
+  const toggleOrig = () => { state.original = !state.original; origBtn.setAttribute('aria-pressed', state.original); };
+  origBtn.addEventListener('click', toggleOrig);
+
+  const playBtn = document.getElementById('play');
+  const togglePlay = () => {
+    if (video.paused) video.play(); else video.pause();
+    playBtn.setAttribute('aria-pressed', video.paused);
+    playBtn.textContent = video.paused ? 'Play' : 'Pause';
+  };
+  playBtn.addEventListener('click', togglePlay);
+
+  const panel = document.getElementById('panel');
+  addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'h' || e.key === 'H') panel.classList.toggle('hidden');
+    if (e.key === 'o' || e.key === 'O') toggleOrig();
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  });
+
+  video.play().catch(() => {});
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

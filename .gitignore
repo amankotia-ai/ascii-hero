@@ -1,0 +1,5 @@
+# Publish only the hero page and its video; everything else here stays local.
+*
+!.gitignore
+!index.html
+!clip.mp4

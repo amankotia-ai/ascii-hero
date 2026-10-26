@@ -1,5 +1,7 @@
-# Publish only the hero page and its video; everything else here stays local.
+# Publish only the page, its video and the work section's media; everything else here stays local.
 *
 !.gitignore
 !index.html
 !clip.mp4
+!work/
+!work/*

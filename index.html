@@ -40,9 +40,9 @@
   input[type=text] { width: 100%; background: transparent; color: var(--fg); border: 1px solid var(--line);
     border-radius: 6px; padding: 5px 7px; font: inherit; }
   .seg { display: flex; gap: 6px; flex-wrap: wrap; }
-  button { flex: 1; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+  .panel button { flex: 1; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
     padding: 6px 8px; font: inherit; cursor: pointer; }
-  button[aria-pressed=true] { background: var(--fg); color: var(--bg); }
+  .panel button[aria-pressed=true] { background: var(--fg); color: var(--bg); }
   .keys { font-size: 11px; }
   .err { position: fixed; inset: 0; display: none; place-items: center; padding: 16px; text-align: center; color: var(--muted); }
 
@@ -64,14 +64,14 @@
     color: #fff; mix-blend-mode: difference; text-transform: uppercase;
     font-family: var(--serif); font-weight: 400; line-height: 0.86;
   }
-  .hero-name b, .hero-desc b { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; }
+  .hero-name b, .hero-desc b, .reel-title b { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; }
   /* Top bar: two menu items either side of the name, no wider than the TV on load. */
   .hero-top {
     top: var(--margin); display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr;
     column-gap: 25px; align-items: start;
   }
   .hero-menu { display: contents; }
-  .hero-name { margin: 0 8px; font-size: 17px; font-weight: 400; text-align: center; white-space: nowrap; }
+  .hero-name, .reel-title { margin: 0 8px; font-size: 17px; font-weight: 400; text-align: center; white-space: nowrap; }
   /* Menu items after signal-a.studio: light mono labels on a 1px rule; the active item has a dot. */
   .item {
     position: relative; display: flex; align-items: center; gap: 8px; padding-bottom: 10px;
@@ -89,6 +89,7 @@
   /* Each word sits in a clip box the size of its line; the inner span slides out of it. */
   .w { display: inline-block; }
   .wi { display: inline-block; will-change: transform; }
+  .item .wi { display: block; }   /* so a menu dot's clip box is no taller than the dot */
   .hero-top .w { clip-path: inset(0 -0.3em -0.4em -0.3em); }
   .hero-desc .w { clip-path: inset(-0.4em -0.3em 0 -0.3em); }
   .hero-desc .dot, .item .dot { vertical-align: 0.02em; }
@@ -96,12 +97,136 @@
     display: inline-block; width: 0.62em; height: 0.62em; border-radius: 50%;
     background: currentColor; vertical-align: 0.02em; margin-right: 0.08em;
   }
+  /* Showreel: the hero's layout again on white, with the plain video where the ASCII TV was.
+     The title where the name was, the screen at the TV's width inside crop marks, and a timecode
+     row whose rule is the scrubber. It slides up over the hero as the last words leave; script
+     sizes it to the hero and scrubs its entrance (words rise, marks close in, picture wipes up). */
+  .reel {
+    position: relative; z-index: 3; margin-top: -20vh; min-height: 100vh; padding: var(--margin) 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    background: #fff; color: #000; text-transform: uppercase;
+    font-family: var(--serif); font-weight: 400; line-height: 0.86;
+  }
+  .reel-top, .reel-bottom { align-self: stretch; margin: 0 var(--inset, var(--margin)); }
+  .reel-top { display: flex; justify-content: center; }
+  .work .item {
+    background: none; border: 0; border-radius: 0; padding: 0 0 10px; cursor: pointer; text-transform: uppercase;
+  }
+  .reel-screen:focus-visible, .work .item:focus-visible, .card:focus-visible {
+    outline: 1px solid currentColor; outline-offset: 4px;
+  }
+  /* Words below the hero rise into their boxes, so the boxes clip at the bottom. */
+  .reel .w, .work .w { clip-path: inset(-0.4em -0.3em 0 -0.3em); }
+
+  .reel-frame { position: relative; width: var(--frame-w, 78vw); height: var(--frame-h, 44vw); }
+  .reel-screen {
+    position: absolute; inset: 0; display: block; padding: 0; border: 0; border-radius: 0; overflow: hidden;
+    background: #000; cursor: pointer; text-transform: inherit; clip-path: inset(var(--wipe, 0%) 0 0 0);
+  }
+  /* Zoomed like the hero's video lookup, which also crops the clip's watermark. */
+  .reel-video {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    transform: scale(var(--zoom, 1.22)); will-change: transform;
+  }
+  /* A bracketed label that trails the pointer over a screen or a project. */
+  .cursor-tag {
+    position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; white-space: nowrap; padding: 7px 9px 6px;
+    font: 300 12px/1 var(--mono); text-transform: uppercase; color: #000; background: #fff;
+    opacity: 0; transition: opacity .2s;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .reel-screen, .card-media { cursor: none; }
+    .reel-screen:hover .cursor-tag, .card-media:hover .cursor-tag { opacity: 1; }
+  }
+  /* Crop marks just outside each corner. */
+  .mark {
+    --o: var(--mark-out, -10px);
+    position: absolute; width: var(--mark-size, 14px); height: var(--mark-size, 14px); border: 0 solid currentColor;
+    transform: translate(calc(var(--mx) * var(--marks, 0px)), calc(var(--my) * var(--marks, 0px)));
+    opacity: var(--marks-in, 1);
+  }
+  .mark.tl { left: var(--o); top: var(--o); border-width: 1px 0 0 1px; --mx: -1; --my: -1; }
+  .mark.tr { right: var(--o); top: var(--o); border-width: 1px 1px 0 0; --mx: 1; --my: -1; }
+  .mark.bl { left: var(--o); bottom: var(--o); border-width: 0 0 1px 1px; --mx: -1; --my: 1; }
+  .mark.br { right: var(--o); bottom: var(--o); border-width: 0 1px 1px 0; --mx: 1; --my: 1; }
+
+  /* Bottom row: mono metadata on one long rule that fills as the reel plays; click to seek. */
+  .reel-bottom {
+    position: relative; padding-bottom: 10px; cursor: pointer;
+    display: grid; grid-template-columns: 1fr 1fr var(--title-w, auto) 1fr 1fr; column-gap: 25px; align-items: start;
+    font: 300 12px/1 var(--mono); font-variant-numeric: tabular-nums;
+  }
+  .reel-bottom > :nth-child(3) { text-align: center; }
+  .reel-bottom > :nth-child(5) { text-align: right; }
+  .reel-bottom::before, .reel-fill {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; transform-origin: left;
+  }
+  .reel-bottom::before { background: rgba(0, 0, 0, 0.16); transform: scaleX(var(--line, 1)); }
+  .reel-fill { background: currentColor; transform: scaleX(calc(var(--line, 1) * var(--played, 0))); }
+
+  /* Work, after revelatio.studio's project grid: a statement, then a wide project and a tall one,
+     then three across. Here the statement is the hero's 3-line justified headline, and hovering a
+     picture closes crop marks in around it.
+     Script scrubs the same entrance as the showreel, card by card. */
+  .work {
+    position: relative; z-index: 3; padding: 22vh var(--inset, var(--margin)) 18vh;
+    background: #fff; color: #000;
+  }
+  .work-head { margin-bottom: 72px; }
+  .work-title {
+    width: 56%; margin: 0; font: 400 2.4vw/0.86 var(--serif); text-transform: uppercase;
+    text-align: justify; text-align-last: justify;
+  }
+  .work-title b { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; }
+  .work-title .dot {
+    display: inline-block; width: 0.62em; height: 0.62em; border-radius: 50%;
+    background: currentColor; vertical-align: 0.02em; margin-right: 0.08em;
+  }
+  .work-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 25px; row-gap: 80px; }
+  .card { display: block; color: inherit; text-decoration: none; }
+  .card.lead { grid-column: span 2; }
+  .card-media { position: relative; aspect-ratio: 16 / 9; }
+  .card:nth-child(-n+2) .card-media { aspect-ratio: auto; height: var(--lead-h, 36vw); }
+  .card-pic { position: absolute; inset: 0; overflow: hidden; background: #ececea; clip-path: inset(var(--wipe, 0%) 0 0 0); }
+  .card-pic img, .card-pic video {
+    display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--focus, center);
+    transform: scale(calc(var(--crop, 1) * var(--zoom, 1) * var(--hover, 1)));
+    transition: transform .8s cubic-bezier(.2, .7, .2, 1);
+  }
+  .card .mark { --marks: 22px; --marks-in: 0; transition: transform .5s cubic-bezier(.2, .7, .2, 1), opacity .3s; }
+  .card-media:hover .mark { --marks: 0px; --marks-in: 1; }
+  .card-media:hover .card-pic { --hover: 1.035; }
+  /* Name left, tags right; on a narrow card the tags drop to a line of their own. */
+  .card-row {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px;
+    margin-top: 18px; font: 300 12px/1 var(--mono); text-transform: uppercase;
+  }
+  .card-row > * { white-space: nowrap; }
+  .card-name { margin: 0 auto 0 0; font: 700 18px/0.86 var(--display); letter-spacing: -0.01em; word-spacing: 0.1em; }
+  .card-tags { margin-left: auto; }
+  .card-desc {
+    max-width: 34em; margin: 12px 0 0; font: 400 14px/1.4 var(--grotesk); color: rgba(0, 0, 0, 0.56);
+  }
+  .work-all { display: inline-flex; margin-top: 80px; font: 300 12px/1 var(--mono); color: inherit; text-decoration: none; }
+
   @media (max-width: 767px) {
-    :root { --margin: 20px; }
+    :root { --margin: 12px; --mark-out: -6px; --mark-size: 10px; }
     .hero-top { grid-template-columns: 1fr; }
     .hero-menu { display: none; }
-    .hero-name { font-size: 14px; }
+    .hero-name, .reel-title { font-size: 14px; }
     .hero-desc { font-size: 6vw; }
+    .reel-bottom { grid-template-columns: 1fr var(--title-w, auto) 1fr; column-gap: 12px; }
+    .reel .wide { display: none; }
+    .work { padding-top: 64px; padding-bottom: 48px; }
+    .work-head { margin-bottom: 24px; }
+    .work-title { width: auto; font-size: 6vw; }
+    .work-grid { grid-template-columns: minmax(0, 1fr); row-gap: 36px; }
+    .card-row { margin-top: 12px; }
+    .card-desc { margin-top: 8px; }
+    .work-all { margin-top: 40px; }
+    .card.lead { grid-column: auto; }
+    .card:nth-child(-n+2) .card-media { height: auto; aspect-ratio: 16 / 9; }
+    .card:nth-child(2) .card-media { aspect-ratio: 4 / 5; }
   }
 
   @media (max-width: 520px) {
@@ -126,6 +251,87 @@
   </header>
   <p class="hero-desc"><span class="dot" aria-hidden="true"></span> An independent <b>product designer</b> &amp; <b>engineer</b> crafting interfaces, motion and code, from first sketch to <b>shipped product</b></p>
 </main>
+<section class="reel" id="showreel" aria-label="Showreel">
+  <header class="reel-top">
+    <h2 class="reel-title">( <b>Showreel</b> )</h2>
+  </header>
+  <div class="reel-frame">
+    <button class="reel-screen" type="button" aria-label="Turn sound on">
+      <video class="reel-video" src="clip.mp4" muted loop playsinline preload="auto"></video>
+      <span class="cursor-tag" aria-hidden="true">( Sound on )</span>
+    </button>
+    <span class="mark tl" aria-hidden="true"></span>
+    <span class="mark tr" aria-hidden="true"></span>
+    <span class="mark bl" aria-hidden="true"></span>
+    <span class="mark br" aria-hidden="true"></span>
+  </div>
+  <footer class="reel-bottom" title="Seek">
+    <span class="reel-tc">00:00:00:00</span>
+    <span class="wide">24 fps</span>
+    <span>Reel 01</span>
+    <span class="wide">Product, motion, code</span>
+    <span class="reel-dur">00:00:06:00</span>
+    <span class="reel-fill" aria-hidden="true"></span>
+  </footer>
+</section>
+<section class="work" id="work" aria-labelledby="work-title">
+  <header class="work-head">
+    <h2 class="work-title" id="work-title"><span class="dot" aria-hidden="true"></span> Recent work in <b>product design</b>, <b>motion</b> and <b>code</b>, each one taken from a first sketch to a <b>working build</b></h2>
+  </header>
+  <div class="work-grid">
+    <a class="card lead" href="#ascii-hero" style="--crop: 1.1">
+      <div class="card-media">
+        <div class="card-pic"><video src="work/ascii-hero.mp4" poster="work/ascii-hero.jpg" muted loop playsinline preload="none"></video></div>
+        <span class="cursor-tag" aria-hidden="true">( Open project )</span>
+        <span class="mark tl" aria-hidden="true"></span><span class="mark tr" aria-hidden="true"></span>
+        <span class="mark bl" aria-hidden="true"></span><span class="mark br" aria-hidden="true"></span>
+      </div>
+      <div class="card-row"><h3 class="card-name">ASCII Hero</h3><span class="card-tags">Code / Motion</span></div>
+      <p class="card-desc">The hero of this site: a WebGL shader that sets a studio film in live ASCII type, scroll choreographed down to a glyph by glyph exit.</p>
+    </a>
+    <a class="card" href="#sundial">
+      <div class="card-media">
+        <div class="card-pic"><img src="work/sundial.jpg" alt="Golden hour still from Sundial: a desk under long monstera shadows" loading="lazy"></div>
+        <span class="cursor-tag" aria-hidden="true">( Open project )</span>
+        <span class="mark tl" aria-hidden="true"></span><span class="mark tr" aria-hidden="true"></span>
+        <span class="mark bl" aria-hidden="true"></span><span class="mark br" aria-hidden="true"></span>
+      </div>
+      <div class="card-row"><h3 class="card-name">Sundial</h3><span class="card-tags">Film</span></div>
+      <p class="card-desc">A 60 second film concept: one designer, one room, one day, and a monstera's shadow on a concrete wall as the only clock.</p>
+    </a>
+    <a class="card" href="#ui-generation">
+      <div class="card-media">
+        <div class="card-pic"><img src="work/ui-generation.jpg" alt="A homepage hero drawn in by the UI Generation animation" loading="lazy"></div>
+        <span class="cursor-tag" aria-hidden="true">( Open project )</span>
+        <span class="mark tl" aria-hidden="true"></span><span class="mark tr" aria-hidden="true"></span>
+        <span class="mark bl" aria-hidden="true"></span><span class="mark br" aria-hidden="true"></span>
+      </div>
+      <div class="card-row"><h3 class="card-name">UI Generation</h3><span class="card-tags">Motion / Code</span></div>
+      <p class="card-desc">An "agent is building this" animation drawn from any element's own structure: a dot field, a probe line, traced outlines, then a scan line reveal.</p>
+    </a>
+    <a class="card" href="#portfolio-stage">
+      <div class="card-media">
+        <div class="card-pic"><img src="work/portfolio-stage.jpg" alt="Portfolio Stage: a bio column beside a phone on a tinted stage" loading="lazy"></div>
+        <span class="cursor-tag" aria-hidden="true">( Open project )</span>
+        <span class="mark tl" aria-hidden="true"></span><span class="mark tr" aria-hidden="true"></span>
+        <span class="mark bl" aria-hidden="true"></span><span class="mark br" aria-hidden="true"></span>
+      </div>
+      <div class="card-row"><h3 class="card-name">Portfolio Stage</h3><span class="card-tags">Product / Code</span></div>
+      <p class="card-desc">A one screen portfolio: a bio column beside a GPU stage, with the whole page taking each project's colour as it plays.</p>
+    </a>
+    <a class="card" href="#studio-intro">
+      <div class="card-media">
+        <div class="card-pic"><img src="work/studio-intro.jpg" alt="Contact sheet of four keyframes for the studio intro film" loading="lazy"></div>
+        <span class="cursor-tag" aria-hidden="true">( Open project )</span>
+        <span class="mark tl" aria-hidden="true"></span><span class="mark tr" aria-hidden="true"></span>
+        <span class="mark bl" aria-hidden="true"></span><span class="mark br" aria-hidden="true"></span>
+      </div>
+      <div class="card-row"><h3 class="card-name">Studio Intro</h3><span class="card-tags">Film / Motion</span></div>
+      <p class="card-desc">Four keyframes and the prompts behind an AI studio film, shot from behind at a desk and cut to loop under this site's hero.</p>
+    </a>
+  </div>
+  <a class="item work-all" href="#archive">See the archive <span aria-hidden="true">↗</span></a>
+</section>
 <div class="err" id="err">WebGL is not available in this browser.</div>
 
 <div class="panel hidden" id="panel">
@@ -162,18 +368,19 @@
     tv: 1,
   };
 
-  // Scroll choreography, after revelatio.studio: the screen reaches full viewport
-  // and loses all of its TV shape at 85% of the scroll, then holds.
-  const END_AT = 0.85;
+  // Scroll choreography: the screen keeps its load size and leaves in sequence with the copy,
+  // its glyphs stepping down the ramp to blank (exit windows are set further down).
   const START_WIDTH = 0.78;     // of the viewport width
-  const START_TV = 0;           // TV shape strength on load (0 = flat screen, 1 = full Revelatio curve)
-  // Like revelatio.studio, the screen grows to the full viewport but is cropped by a
+  const START_TV = 0;           // TV shape strength (0 = flat screen, 1 = full Revelatio curve)
+  // Video export renders the whole viewport instead, cropped like revelatio.studio by a
   // frame inset from the window edges, so it never runs edge to edge.
   const FRAME_INSET = 30;
   const PHONE_FRAME_SIDES = 12;
-  // Phones get a vertical 9:16 screen; the video is centre-cropped to fill it.
+  // Phones get a vertical screen the full width inside the side margins (--margin on phones),
+  // as tall as the room allows up to PHONE_TALLEST; the video is centre-cropped to fill it.
   const PHONE_MAX = 767;
-  const PHONE_WIDTH = 0.86;
+  const PHONE_SIDES = 12;
+  const PHONE_TALLEST = 0.45;   // narrowest width to height ratio
   const PHONE_WARP = 0.5;       // half the curve and bulge of desktop
 
   const vert = `
@@ -201,6 +408,7 @@
     uniform float uTv;
     uniform float uWarp;   // scales the curve and bulge (gentler on phones)
     uniform vec4 uClip;    // frame the screen is cropped to: left, bottom, right, top in canvas px
+    uniform float uOut;    // scroll exit, 0 = on screen, 1 = every glyph blank
 
     // object-fit: cover
     vec2 cover(vec2 uv) {
@@ -260,6 +468,14 @@
       // Brighter cells take denser glyphs (the ramp runs dense to blank).
       float l = dot(col, vec3(0.299, 0.587, 0.114));
       l = clamp((l - 0.5) * uContrast + 0.5 + uBright, 0.0, 1.0);
+
+      // Exit: a front sweeps from the top left corner to the bottom right, a little early or
+      // late per cell, and each cell it passes steps down the ramp to blank.
+      vec2 cuv = (cellId + 0.5) * uCell / uRes;
+      float jitter = fract(sin(dot(cellId, vec2(12.9898, 78.233))) * 43758.5453);
+      float front = mix((cuv.x + 1.0 - cuv.y) * 0.5, jitter, 0.3);
+      float gone = clamp((uOut - front * 0.7) / 0.3, 0.0, 1.0);
+      l *= 1.0 - gone;
       float idx = floor((1.0 - l) * (uGlyphs - 1.0) + 0.5);
 
       // The glyph is magnified by uDot and cropped to its cell.
@@ -273,8 +489,8 @@
       vec3 blur = (src(vuv + vec2(px.x, 0.0)) + src(vuv - vec2(px.x, 0.0)) +
                    src(vuv + vec2(0.0, px.y)) + src(vuv - vec2(0.0, px.y))) * 0.25;
       float peak = max(max(blur.r, blur.g), blur.b);
-      vec3 color = ascii + blur * smoothstep(0.58, 1.0, peak) * uBloom;
-      color = mix(color, src(videoUv(uv)), uOriginal);
+      vec3 color = ascii + blur * smoothstep(0.58, 1.0, peak) * uBloom * (1.0 - gone);
+      color = mix(color, src(videoUv(uv)) * (1.0 - gone), uOriginal);
 
       // TV outline, softened over most of a cell.
       vec2 p = uv * 2.0 - 1.0;
@@ -311,7 +527,7 @@
 
   const U = {};
   ['uVideo', 'uAtlas', 'uRes', 'uOrigin', 'uVidAspect', 'uCell', 'uGlyphs', 'uContrast', 'uBright', 'uDot',
-   'uBloom', 'uOriginal', 'uTv', 'uWarp', 'uClip'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+   'uBloom', 'uOriginal', 'uTv', 'uWarp', 'uClip', 'uOut'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
 
   function makeTex(unit) {
     const t = gl.createTexture();
@@ -360,14 +576,16 @@
   addEventListener('resize', resize);
   resize();
 
-  // 0 at the top of the page, 1 once the screen is full viewport (85% of the scroll).
+  const span = (v, a, b) => Math.min(Math.max((v - a) / (b - a), 0), 1);
+  const ease = t => t * t * (3 - 2 * t);
+
+  // 0 at the top of the page, 1 at the end of the hero's pinned scroll (as the showreel
+  // has slid up over it).
+  const hero = document.querySelector('.scroll');
   function scrolled() {
-    if (exporting) return 1;    // video export renders the end-of-scroll state only
-    const max = document.documentElement.scrollHeight - innerHeight;
-    return max > 0 ? Math.min(Math.max(scrollY / max, 0), 1) : 0;
-  }
-  function progress() {
-    return Math.min(scrolled() / END_AT, 1);
+    if (exporting) return 1;    // video export hides the copy
+    const max = hero.offsetHeight - innerHeight;
+    return max > 0 ? span(scrollY, 0, max) : 0;
   }
 
   // Wrap every word (and the dot) of an element in a clip box with a sliding inner span.
@@ -401,57 +619,247 @@
     return inners;
   }
 
-  // Scroll-driven exit: over the first TEXT_OUT of the scroll, words slide out of their clip
-  // boxes one after another, left to right; scrolling back brings them in again.
-  const TEXT_OUT = 0.3;
-  const STAGGER = 0.5;          // share of the exit spent spreading starts across the words
+  // Scroll-driven exit, in sequence from the top of the screen down: the top bar, then the TV,
+  // then the description, each over its own window of the pinned scroll. Words slide out of
+  // their clip boxes one after another, left to right; scrolling back brings them in again.
+  const STAGGER = 0.5;          // share of a window spent spreading starts across the words
+  const TV_OUT = [0.14, 0.62];
   const exits = [
-    { words: splitWords(document.querySelector('.hero-top')), dir: -1 },
-    { words: splitWords(document.querySelector('.hero-desc')), dir: 1 },
+    { words: splitWords(document.querySelector('.hero-top')), dir: -1, from: 0, to: 0.3,
+      items: [...document.querySelectorAll('.hero-menu .item')] },
+    { words: splitWords(document.querySelector('.hero-desc')), dir: 1, from: 0.4, to: 0.8, items: [] },
   ];
-  const items = [...document.querySelectorAll('.hero-menu .item')];
-  let lastOut = -1;
-  function animateText() {
-    const out = Math.min(scrolled() / TEXT_OUT, 1);
-    if (out === lastOut) return;
-    lastOut = out;
-    for (const { words, dir } of exits) {
-      const n = words.length;
-      words.forEach((wi, i) => {
-        const start = n > 1 ? i / (n - 1) * STAGGER : 0;
-        const t = Math.min(Math.max((out - start) / (1 - STAGGER), 0), 1);
-        const e = t * t * (3 - 2 * t);
-        wi.style.transform = e ? `translateY(${dir * e * 115}%)` : '';
-      });
-    }
-    // Menu rules retract to the left, staggered like the words.
+
+  // Progress of the i-th of n staggered parts at overall progress p.
+  function stagger(n, i, p) {
+    const start = n > 1 ? i / (n - 1) * STAGGER : 0;
+    return ease(span(p, start, start + 1 - STAGGER));
+  }
+  // out 0 = words in place, 1 = out of their boxes (dir -1 up, 1 down). Menu rules retract to
+  // the left, staggered like the words. Entering, the first word and rule arrive first.
+  function slideWords(words, items, out, dir, entering = false) {
+    const part = (n, i) => entering ? 1 - stagger(n, i, 1 - out) : stagger(n, i, out);
+    words.forEach((wi, i) => {
+      const e = part(words.length, i);
+      wi.style.transform = e ? `translateY(${dir * e * 115}%)` : '';
+    });
     items.forEach((item, i) => {
-      const start = items.length > 1 ? i / (items.length - 1) * STAGGER : 0;
-      const t = Math.min(Math.max((out - start) / (1 - STAGGER), 0), 1);
-      item.style.setProperty('--line', 1 - t * t * (3 - 2 * t));
-      item.style.pointerEvents = t > 0.5 ? 'none' : '';
+      const e = part(items.length, i);
+      item.style.setProperty('--line', 1 - e);
+      item.style.pointerEvents = e > 0.5 ? 'none' : '';
     });
   }
 
-  // Screen rectangle in canvas pixels (GL origin bottom left): grows from its load-time TV
-  // rectangle (set by fitLayout) to the whole viewport.
+  let lastY = -1;
+  function animateText() {
+    if (scrollY === lastY) return;
+    lastY = scrollY;
+    const s = scrolled();
+    for (const { words, items, dir, from, to } of exits) slideWords(words, items, span(s, from, to), dir);
+    reel.enter();
+    work.enter();
+  }
+
+  // Screen rectangle in canvas pixels (GL origin bottom left): the load-time TV rectangle set
+  // by fitLayout, held at that size throughout (the whole viewport for video export).
   let startRect = null;
   function naturalTv(videoAspect) {
     const vw = canvas.width, vh = canvas.height;
-    const phone = canvas.clientWidth <= PHONE_MAX;
-    const aspect = phone ? 9 / 16 : videoAspect;
-    const w = Math.min(vw * (phone ? PHONE_WIDTH : START_WIDTH), vh * (phone ? 0.78 : 0.9) * aspect);
-    return [w, w / aspect];
+    if (canvas.clientWidth <= PHONE_MAX) {
+      const w = vw - 2 * PHONE_SIDES * dpr;
+      return [w, w / PHONE_TALLEST];
+    }
+    const w = Math.min(vw * START_WIDTH, vh * 0.9 * videoAspect);
+    return [w, w / videoAspect];
   }
-  function screenRect(t, videoAspect) {
+  function screenRect(videoAspect) {
     const vw = canvas.width, vh = canvas.height;
+    if (exporting) return [0, 0, vw, vh];
     if (!startRect) {
       const [w0, h0] = naturalTv(videoAspect);
       startRect = [(vw - w0) / 2, (vh - h0) / 2, w0, h0];
     }
-    const [x0, y0, w0, h0] = startRect;
-    return [x0 * (1 - t), y0 * (1 - t), w0 + (vw - w0) * t, h0 + (vh - h0) * t];
+    return startRect;
   }
+
+  // A label that trails the pointer over an area (CSS shows it on hover); call the returned
+  // function every frame.
+  function cursorTag(area, tag) {
+    let cx = 0, cy = 0, tx = 0, ty = 0, over = false;
+    area.addEventListener('pointermove', e => {
+      const r = area.getBoundingClientRect();
+      tx = e.clientX - r.left; ty = e.clientY - r.top;
+      if (!over) { cx = tx; cy = ty; over = true; }
+    });
+    area.addEventListener('pointerleave', () => { over = false; });
+    return () => {
+      if (!over) return;
+      cx += (tx - cx) * 0.2; cy += (ty - cy) * 0.2;
+      tag.style.transform = `translate(${cx}px, ${cy}px) translate(-50%, -50%)`;
+    };
+  }
+
+  // Set an element at the largest font size that wraps to exactly `count` lines.
+  function fitLines(el, count) {
+    el.style.fontSize = '';
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) / parseFloat(getComputedStyle(el).fontSize);
+    const lines = size => { el.style.fontSize = size + 'px'; return Math.round(el.offsetHeight / (size * lineHeight)); };
+    let lo = 6, hi = 200;
+    for (let i = 0; i < 30 && hi - lo > 0.05; i++) {
+      const mid = (lo + hi) / 2;
+      if (lines(mid) <= count) lo = mid; else hi = mid;
+    }
+    el.style.fontSize = lo + 'px';
+  }
+
+  // Showreel: the plain clip on white. fit() sizes it to the hero; enter() scrubs its entrance
+  // from the moment its top meets the bottom of the window until it reaches the top.
+  const reel = (() => {
+    const el = document.querySelector('.reel');
+    const clip = el.querySelector('.reel-video');
+    const screen = el.querySelector('.reel-screen');
+    const title = el.querySelector('.reel-title');
+    const topRow = el.querySelector('.reel-top');
+    const bottomRow = el.querySelector('.reel-bottom');
+    const cursor = el.querySelector('.cursor-tag');
+    const topWords = splitWords(topRow), bottomWords = splitWords(bottomRow);
+    const inner = sel => el.querySelector(sel + ' .wi');
+    const tc = inner('.reel-tc'), dur = inner('.reel-dur');
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    const FPS = 24;
+    let start = 0;      // scrollY at which the section's top meets the bottom of the window
+
+    // Keep the top bar's width, and the frame's height to the room left between the rows with
+    // the hero's gap above and below it (the video crops top and bottom).
+    function fit(inset, gap, aspect) {
+      document.documentElement.style.setProperty('--inset', inset + 'px');
+      title.style.fontSize = nameEl.style.fontSize;
+      title.style.position = nameEl.style.position;
+      title.style.top = nameEl.style.top;
+      el.style.setProperty('--title-w', title.offsetWidth + 16 + 'px');
+      const margin = parseFloat(getComputedStyle(el).paddingTop);
+      const width = el.clientWidth - 2 * inset;
+      const room = innerHeight - 2 * margin - topRow.offsetHeight - bottomRow.offsetHeight - 2 * gap;
+      const natural = width / aspect;
+      el.style.setProperty('--frame-w', width + 'px');
+      el.style.setProperty('--frame-h', Math.max(natural * 0.5, Math.min(natural, room)) + 'px');
+      start = el.offsetTop - innerHeight;
+    }
+
+    // Crop marks close in, the picture wipes up into them as it settles from a slight zoom, then
+    // the words rise into their boxes, top row first, and the scrubber draws in from the left.
+    function enter() {
+      const p = still.matches ? 1 : span(scrollY, start, start + innerHeight);
+      const marks = ease(span(p, 0.2, 0.6)), wipe = ease(span(p, 0.25, 0.85));
+      el.style.setProperty('--marks', (1 - marks) * 24 + 'px');
+      el.style.setProperty('--marks-in', marks);
+      el.style.setProperty('--wipe', (1 - wipe) * 100 + '%');
+      el.style.setProperty('--zoom', 1.22 * (1 + 0.15 * (1 - wipe)));
+      slideWords(topWords, [], 1 - span(p, 0.45, 0.95), 1, true);
+      slideWords(bottomWords, [bottomRow], 1 - span(p, 0.55, 1), 1, true);
+    }
+
+    // SMPTE-style timecode, hours:minutes:seconds:frames.
+    const timecode = t => {
+      const f = Math.floor(t * FPS), s = f / FPS;
+      return [s / 3600, s / 60 % 60, s % 60, f % FPS].map(v => String(Math.floor(v)).padStart(2, '0')).join(':');
+    };
+    clip.addEventListener('loadedmetadata', () => { dur.textContent = timecode(clip.duration); });
+
+    // Controls: clicking the screen toggles sound. It plays while on screen.
+    const play = () => clip.play().catch(() => {});
+    const sync = () => {
+      const action = clip.muted ? 'Sound on' : 'Sound off';
+      cursor.textContent = `( ${action} )`;
+      screen.setAttribute('aria-label', 'Turn ' + action.toLowerCase());
+    };
+    clip.addEventListener('volumechange', sync);
+    screen.addEventListener('click', () => { clip.muted = !clip.muted; if (clip.paused) play(); });
+    bottomRow.addEventListener('click', e => {
+      const r = bottomRow.getBoundingClientRect();
+      if (clip.duration) clip.currentTime = span(e.clientX, r.left, r.right) * clip.duration;
+    });
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) play(); else clip.pause();
+    }, { threshold: 0.2 }).observe(screen);
+
+    const trail = cursorTag(screen, cursor);
+    function tick() {
+      if (scrollY < start) return;
+      if (clip.readyState >= 1) {
+        tc.textContent = timecode(clip.currentTime);
+        el.style.setProperty('--played', clip.duration ? clip.currentTime / clip.duration : 0);
+      }
+      trail();
+    }
+
+    sync();
+    return { fit, enter, tick };
+  })();
+
+  // Work: the project grid. fit() sets the headline to 3 lines and the first row's height;
+  // enter() scrubs each part's entrance as it rises through the bottom half of the window.
+  const work = (() => {
+    const el = document.querySelector('.work');
+    const title = el.querySelector('.work-title');
+    const cards = [...el.querySelectorAll('.card')];
+    const lead = el.querySelector('.card.lead .card-media');
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    const TITLE_COL = 0.56;   // of the grid's width, as revelatio.studio's statement
+
+    // Parts that enter on their own: the header, then every card (picture, row, description).
+    const parts = [
+      { el: el.querySelector('.work-head'), words: splitWords(el.querySelector('.work-head')), items: [] },
+      ...cards.map(card => ({
+        el: card, card,
+        words: splitWords(card.querySelector('.card-row')),
+        items: [],
+        desc: splitWords(card.querySelector('.card-desc')),
+      })),
+      { el: el.querySelector('.work-all'), words: splitWords(el.querySelector('.work-all')), items: [el.querySelector('.work-all')] },
+    ];
+
+    // Parts near the end of the page finish entering by the time it is scrolled to the bottom.
+    function fit(phone) {
+      title.style.width = phone ? '' : el.querySelector('.work-grid').clientWidth * TITLE_COL + 'px';
+      fitLines(title, 3);
+      el.style.setProperty('--lead-h', lead.offsetWidth * 9 / 16 + 'px');
+      const max = document.documentElement.scrollHeight - innerHeight;
+      parts.forEach(p => {
+        p.top = p.el.getBoundingClientRect().top + scrollY;
+        p.end = Math.max(1, Math.min(innerHeight * 0.5, max + innerHeight - p.top));
+        p.last = -1;
+      });
+    }
+
+    function enter() {
+      for (const p of parts) {
+        const t = still.matches ? 1 : span(scrollY + innerHeight - p.top, 0, p.end);
+        if (t === p.last) continue;
+        p.last = t;
+        if (p.card) {
+          const wipe = ease(span(t, 0, 0.7));
+          p.card.style.setProperty('--wipe', (1 - wipe) * 100 + '%');
+          p.card.style.setProperty('--zoom', 1 + 0.12 * (1 - wipe));
+          slideWords(p.words, p.items, 1 - span(t, 0.3, 0.9), 1, true);
+          slideWords(p.desc, [], 1 - span(t, 0.45, 1), 1, true);
+        } else {
+          slideWords(p.words, p.items, 1 - t, 1, true);
+        }
+      }
+    }
+
+    // Videos play only while on screen.
+    const watch = new IntersectionObserver(entries => entries.forEach(({ target, isIntersecting }) => {
+      if (isIntersecting) target.play().catch(() => {}); else target.pause();
+    }), { threshold: 0.2 });
+    el.querySelectorAll('video').forEach(v => watch.observe(v));
+
+    const trails = cards.map(c => cursorTag(c.querySelector('.card-media'), c.querySelector('.cursor-tag')));
+    const tick = () => trails.forEach(t => t());
+
+    return { fit, enter, tick };
+  })();
 
   // On load: set the description at the largest size that wraps to exactly DESC_LINES lines in a
   // column centred on the TV, then keep the TV's width but trim its height (the video crops top
@@ -461,8 +869,9 @@
   const top = document.querySelector('.hero-top');
   const VIDEO_GAP = 0.075;        // space above and below the video on load, as a share of window height
   const MIN_VIDEO_GAP = 40;
+  const PHONE_VIDEO_GAP = 20;     // phones keep the content tight
   const COPY_WIDTH = 0.62;        // of the TV's visible width (wider on phones)
-  const PHONE_COPY_WIDTH = 0.9;
+  const PHONE_COPY_WIDTH = 1;
   const DESC_LINES = 3;
 
   // Size the name so its capitals run from the menu labels' cap line down to the menu rule,
@@ -501,7 +910,7 @@
       bottom = rule + 1;
     }
     words.forEach((w, i) => { w.style.transform = saved[i]; });
-    lastOut = -1;
+    lastY = -1;
     return bottom;
   }
   function fitLayout() {
@@ -525,18 +934,11 @@
     // Description: width decides the size, so it always fills DESC_LINES lines.
     const column = w0 * widthExt * (phone ? PHONE_COPY_WIDTH : COPY_WIDTH);
     desc.style.left = desc.style.right = Math.max(margin, (vw - column) / 2) + 'px';
-    const lineHeight = parseFloat(getComputedStyle(desc).lineHeight) / parseFloat(getComputedStyle(desc).fontSize);
-    const lines = size => { desc.style.fontSize = size + 'px'; return Math.round(desc.offsetHeight / (size * lineHeight)); };
-    let lo = 6, hi = 200;
-    for (let i = 0; i < 30 && hi - lo > 0.05; i++) {
-      const mid = (lo + hi) / 2;
-      if (lines(mid) <= DESC_LINES) lo = mid; else hi = mid;
-    }
-    desc.style.fontSize = lo + 'px';
+    fitLines(desc, DESC_LINES);
     const descTop = vh - margin - desc.offsetHeight;
 
     // TV: full width, height trimmed to the band between the top bar and the description.
-    const gap = Math.max(MIN_VIDEO_GAP, vh * VIDEO_GAP);
+    const gap = phone ? PHONE_VIDEO_GAP : Math.max(MIN_VIDEO_GAP, vh * VIDEO_GAP);
     const bandTop = barBottom + gap, bandH = descTop - gap - bandTop;
     const h = Math.max(h0 * 0.25, Math.min(h0, bandH * 2 / (topExt + bottomExt)));
     const visibleH = h / 2 * (topExt + bottomExt);
@@ -547,7 +949,13 @@
     // shader's soft edge that still reads as picture (it fades outward past the shape).
     // The fade can only spill as far as the screen rectangle, so a flat screen has a crisp edge.
     const fade = Math.min(state.cell * 0.8 * w0 / Math.min(w0, h) * 0.6, w0 * (1 - cornerExt) / 2);
-    top.style.left = top.style.right = Math.max(margin, (vw - w0 * cornerExt) / 2 - fade) + 'px';
+    const barInset = Math.max(margin, (vw - w0 * cornerExt) / 2 - fade);
+    top.style.left = top.style.right = barInset + 'px';
+
+    // The showreel repeats this layout: same width as the top bar, same gaps. Work follows on
+    // the same width.
+    reel.fit(barInset, gap, phone ? PHONE_TALLEST : aspect);
+    work.fit(phone);
   }
   addEventListener('resize', fitLayout);
   video.addEventListener('loadedmetadata', fitLayout);
@@ -557,18 +965,24 @@
   // Lenis smooth scroll, driven from the same rAF loop as the shader.
   const lenis = window.Lenis && !exporting ? new Lenis({ lerp: 0.08, wheelMultiplier: 0.9, smoothWheel: true }) : null;
 
+  // Once every glyph is blank the screen stays black, so drawing stops until it comes back.
+  let drawnOut = -1;
   function frame(time) {
     if (lenis) lenis.raf(time);
     animateText();
-    if (video.readyState >= 2) {
+    reel.tick();
+    work.tick();
+    const out = exporting ? 0 : span(scrolled(), TV_OUT[0], TV_OUT[1]);
+    if (video.readyState >= 2 && (out < 1 || drawnOut < 1)) {
+      drawnOut = out;
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, videoTex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
 
-      const t = progress();
-      state.tv = (1 - t) * START_TV;
+      state.tv = START_TV;
       const aspect = video.videoWidth / video.videoHeight;
-      const [sx, sy, sw, sh] = screenRect(t, aspect);
+      const [sx, sy, sw, sh] = screenRect(aspect);
+      gl.uniform1f(U.uOut, out);
 
       gl.uniform1i(U.uVideo, 0);
       gl.uniform1i(U.uAtlas, 1);

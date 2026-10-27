@@ -439,9 +439,15 @@
   // shade's place are lightweight.info's, in a frame 1080 units tall (offset from its centre and
   // diameter). Our first screen is symmetric, so the light sits at the top centre instead of their
   // top left: centred across, with its middle LIGHT_LIFT of its radius above the window's top edge,
-  // so its brightest spill is above the headline.
+  // so its brightest spill is above the headline. On touch screens the page's top edge meets a
+  // browser bar (iOS Safari's status band, or a toolbar tinted from the page) in flat black, which
+  // cut the light off in a hard line: there its middle sits TOUCH_LIGHT_DROP of its radius below the
+  // top edge instead, and the finish fades into black over that distance above it, so the light
+  // rises out of the bar.
   const GLOW = { size: 1650 };
   const LIGHT_LIFT = 0.15;
+  const TOUCH_LIGHT_DROP = 0.25;
+  const touch = matchMedia('(hover: none)');
   const SHADE = { x: 1020, y: 699, size: 1880 };
 
   const vert = `
@@ -486,6 +492,7 @@
     uniform vec3 uGlow;       // the finish's light: centre x, y and radius in canvas px
     uniform vec3 uShade;      // and its shade
     uniform vec3 uGrain;      // grain seed, grain alpha, canvas px per grain dot
+    uniform vec2 uTop;        // canvas height, and how far down from its top edge the finish fades in from black (0 = none)
 
     // The background's finish, after lightweight.info's page background: on black, a soft white
     // light (a radial gradient at 15%) and a black shade (one at 50%), under a fine grain (a random
@@ -503,6 +510,7 @@
       c = mix(c, vec3(0.0), 0.5 * max(1.0 - length(p - uShade.xy) / uShade.z, 0.0));
       float g = floor(hash(floor(p / uGrain.z) + uGrain.x * vec2(17.0, 31.0)) * 255.0) / 255.0;
       c = mix(c, vec3(g), uGrain.y * 0.6);
+      if (uTop.y > 0.0) c *= smoothstep(0.0, uTop.y, uTop.x - p.y);
       return mix(uBg, c, k);
     }
 
@@ -610,7 +618,7 @@
   const U = {};
   ['uTexA', 'uTexB', 'uAtlas', 'uRes', 'uOrigin', 'uAspectA', 'uAspectB', 'uZoomA', 'uZoomB', 'uMarkA', 'uMarkB',
    'uRealA', 'uRealB', 'uHasA', 'uT', 'uBg', 'uCell', 'uGlyphs', 'uContrast', 'uBright', 'uDot', 'uBloom',
-   'uOriginal', 'uClip', 'uShift', 'uFinish', 'uGlow', 'uShade', 'uGrain'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+   'uOriginal', 'uClip', 'uShift', 'uFinish', 'uGlow', 'uShade', 'uGrain', 'uTop'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
 
   function makeTex(unit) {
     const t = gl.createTexture();
@@ -1410,7 +1418,9 @@
     const unit = Math.max(bandW / 1920, bandH / 1080) * dpr, cx = canvas.width / 2, cy = canvas.height - bandH / 2 * dpr;
     const lightR = GLOW.size / 2 * unit;
     gl.uniform1f(U.uFinish, exporting ? 0 : 1);
-    gl.uniform3f(U.uGlow, cx, canvas.height + LIGHT_LIFT * lightR, lightR);
+    const drop = touch.matches ? TOUCH_LIGHT_DROP * lightR : 0;   // see TOUCH_LIGHT_DROP
+    gl.uniform3f(U.uGlow, cx, canvas.height + (drop ? -drop : LIGHT_LIFT * lightR), lightR);
+    gl.uniform2f(U.uTop, canvas.height, drop);
     gl.uniform3f(U.uShade, cx + SHADE.x * unit, cy - SHADE.y * unit, SHADE.size / 2 * unit);
     gl.uniform3f(U.uGrain, still.matches ? 0 : Math.floor(performance.now() * 60 / 8000) % 1024, (phone ? 10 : 12) / 255, dpr);
     const side = (exportFrame ?? (phone ? PHONE_FRAME_SIDES : FRAME_INSET)) * dpr, edge = (exportFrame ?? FRAME_INSET) * dpr;

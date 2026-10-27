@@ -24,6 +24,10 @@
   /* The hero is pinned while scroll turns it into the showreel; after that the page scrolls normally. */
   .scroll { height: 230vh; position: relative; }   /* script adds the work row's scroll */
   .stage { position: sticky; top: 0; height: 100vh; overflow: clip; }   /* clip: focus must not scroll it */
+  /* At rest at the very top the stage is ordinary content instead (the same place): iOS Safari does
+     not draw sticky or fixed content behind its floating toolbar but fills that band with a flat
+     colour, so the hero video only reaches the bottom edge while it is not sticky. */
+  .stage.rest { position: relative; }
   canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; background: #000; }
   video { display: none; }
   html.lenis, html.lenis body { height: auto; }
@@ -302,7 +306,7 @@
   </nav>
 </header>
 <main class="scroll">
-  <div class="stage">
+  <div class="stage rest">
     <canvas id="gl"></canvas>
     <section class="strip" id="work" aria-labelledby="work-title">
       <h2 class="visually-hidden" id="work-title">Selected work</h2>
@@ -1128,6 +1132,7 @@
     mix = easeInOut(span(p, 0.2, 0.8));
     shift = exporting ? 0 : HERO_SHIFT * (1 - mix);
     stage.classList.toggle('is-moving', p > 0.1 && p < 0.9);
+    stage.classList.toggle('rest', y <= 0);
     syncTag();
   }
 

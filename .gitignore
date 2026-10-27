@@ -5,3 +5,5 @@
 !clip.mp4
 !work/
 !work/*
+!project/
+!project/**

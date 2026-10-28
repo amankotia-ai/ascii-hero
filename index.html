@@ -505,21 +505,29 @@
     // The background's finish, after lightweight.info's page background: on black, a soft white
     // light (a radial gradient at 15%) and a black shade (one at 50%), under a fine grain (a random
     // grey per CSS pixel at 12/255, the layer at 60%) that is re-rolled about 7.5 times a second.
-    // It fades out as the background turns white.
+    // It fades out as the background turns white. The same finish on black is the ground under the
+    // ASCII picture, so wherever its cells are blank (before it builds in, as it thins out) the
+    // screen matches the background around it instead of reading as a black box.
     float hash(vec2 p) {
       vec3 p3 = fract(vec3(p.xyx) * 0.1031);
       p3 += dot(p3, p3.yzx + 33.33);
       return fract((p3.x + p3.y) * p3.z);
     }
-    vec3 backdrop(vec2 p) {
-      float k = uFinish * (1.0 - uBg.r);
-      if (k <= 0.0) return uBg;
-      vec3 c = mix(uBg, vec3(1.0), 0.15 * max(1.0 - length(p - uGlow.xy) / uGlow.z, 0.0));
+    vec3 finish(vec2 p, vec3 base) {
+      vec3 c = mix(base, vec3(1.0), 0.15 * max(1.0 - length(p - uGlow.xy) / uGlow.z, 0.0));
       c = mix(c, vec3(0.0), 0.5 * max(1.0 - length(p - uShade.xy) / uShade.z, 0.0));
       float g = floor(hash(floor(p / uGrain.z) + uGrain.x * vec2(17.0, 31.0)) * 255.0) / 255.0;
       c = mix(c, vec3(g), uGrain.y * 0.6);
       if (uTop.y > 0.0) c *= smoothstep(0.0, uTop.y, uTop.x - p.y);
-      return mix(uBg, c, k);
+      return c;
+    }
+    vec3 backdrop(vec2 p) {
+      float k = uFinish * (1.0 - uBg.r);
+      return k > 0.0 ? mix(uBg, finish(p, uBg), k) : uBg;
+    }
+    vec3 ground(vec2 p) {
+      float k = uFinish * (1.0 - uBg.r);
+      return k > 0.0 ? finish(p, vec3(0.0)) * k : vec3(0.0);
     }
 
     // object-fit: cover, then a zoom toward the centre, then the framing shift.
@@ -588,14 +596,14 @@
         float k = lp * 2.0;
         float level = uHasA * (1.0 - smoothstep(0.3, 1.0, k));
         float real = max(uRealA * (1.0 - smoothstep(0.0, 0.35, k)), uOriginal * level);
-        color = ascii(uTexA, cellUv, frag, uAspectA, uZoomA, uMarkA, level);
+        color = ascii(uTexA, cellUv, frag, uAspectA, uZoomA, uMarkA, level) + ground(gl_FragCoord.xy);
         if (real > 0.0) color = mix(color, picture(uTexA, uv, uAspectA, uZoomA, uMarkA), real);
       } else {
         // B arrives: glyphs fill in from blank, then resolve to its real pixels.
         float k = lp * 2.0 - 1.0;
         float level = smoothstep(0.0, 0.7, k);
         float real = max(uRealB * smoothstep(0.6, 1.0, k), uOriginal * level);
-        color = ascii(uTexB, cellUv, frag, uAspectB, uZoomB, uMarkB, level);
+        color = ascii(uTexB, cellUv, frag, uAspectB, uZoomB, uMarkB, level) + ground(gl_FragCoord.xy);
         if (real > 0.0) color = mix(color, picture(uTexB, uv, uAspectB, uZoomB, uMarkB), real);
       }
       gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
@@ -1392,26 +1400,27 @@
   }
 
   function draw() {
-    if (!rect || video.readyState < 2) {
-      gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-      return;
-    }
+    // Before the page-load build (no screen yet, or no frame of the clip) the hero's screen is drawn
+    // empty, so the background and its finish are there from the first frame, screen and all.
+    const r = rect || rects.hero;
+    if (!r) { gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
+    const empty = intro || !rect || video.readyState < 2;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, videoTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+    if (video.readyState >= 2) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
     gl.uniform1i(U.uTexA, 0);
     gl.uniform1i(U.uTexB, 0);
     gl.uniform1i(U.uAtlas, 1);
 
     // Both pictures are the clip: as ASCII (A) and as itself (B). The load build has nothing before.
-    const aspect = video.videoWidth / video.videoHeight;
-    gl.uniform2f(U.uOrigin, rect.x * dpr, canvas.height - (rect.y + rect.h) * dpr);
-    gl.uniform2f(U.uRes, rect.w * dpr, rect.h * dpr);
+    const aspect = video.videoWidth ? video.videoWidth / video.videoHeight : 16 / 9;
+    gl.uniform2f(U.uOrigin, r.x * dpr, canvas.height - (r.y + r.h) * dpr);
+    gl.uniform2f(U.uRes, r.w * dpr, r.h * dpr);
     gl.uniform1f(U.uAspectA, aspect); gl.uniform1f(U.uAspectB, aspect);
     gl.uniform1f(U.uZoomA, 0.82); gl.uniform1f(U.uZoomB, 0.82);
     gl.uniform1f(U.uMarkA, 1); gl.uniform1f(U.uMarkB, 1);
-    gl.uniform1f(U.uRealA, 0); gl.uniform1f(U.uRealB, intro ? 0 : 1);
-    gl.uniform1f(U.uHasA, intro ? 0 : 1);
+    gl.uniform1f(U.uRealA, 0); gl.uniform1f(U.uRealB, empty ? 0 : 1);
+    gl.uniform1f(U.uHasA, empty ? 0 : 1);
     gl.uniform1f(U.uT, sweep);
     gl.uniform3f(U.uBg, bg, bg, bg);
     gl.uniform1f(U.uCell, state.cell * dpr);

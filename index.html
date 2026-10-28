@@ -9,6 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
+  /* Navigating between this page and a case study is a view transition: the browser holds the old
+     page's last frame until the new one has rendered and crossfades between them. Opening a card,
+     both frames are the same full-bleed film, so the page swap does not show. */
+  @view-transition { navigation: auto; }
   :root {
     --bg: #0b0d0c;
     --panel: rgba(14, 17, 15, 0.82);
@@ -1340,6 +1344,8 @@
   const GROW = 850, GLIDE = 0.8;
   const easeInOutQuart = t => t < 0.5 ? 8 * t ** 4 : 1 - Math.pow(-2 * t + 2, 4) / 2;
   let leaving = null;
+  // Moves the film in one step, so it keeps playing (moveBefore also keeps it from being re-attached).
+  const move = (parent, node) => parent.moveBefore ? parent.moveBefore(node, null) : parent.appendChild(node);
   function openCard(e, card, n) {
     const film = card.querySelector('.pic video');
     if (still.matches || !lenis || !film || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -1361,8 +1367,8 @@
       if (!there && now - L.since < 1500) return;
       L.flyer = document.createElement('div');
       L.flyer.className = 'flyer';
-      L.flyer.appendChild(L.film);   // moved in one step, so it keeps playing
       document.body.appendChild(L.flyer);
+      move(L.flyer, L.film);
       Object.assign(L, { phase: 'grow', since: now, title: titleText });
     }
     if (L.phase === 'gone') return;
@@ -1376,7 +1382,7 @@
     slideWords(menuWords, menuItems, 1 - span(out, 1 / 3, 1), 1, true);   // back with the name
     if (k < 1) return;
     if (L.phase === 'back') {
-      L.card.querySelector('.pic').appendChild(L.film);
+      move(L.card.querySelector('.pic'), L.film);
       L.flyer.remove();
       leaving = null; dirty = true;
       lenis.start();

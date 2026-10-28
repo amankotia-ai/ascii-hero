@@ -126,8 +126,8 @@
     overflow: hidden;   /* so its baseline is its bottom margin edge (the letters' baseline), not the tile's foot */
   }
   .hero-name .mark-w .wi { display: flex; align-items: center; gap: calc(40 * var(--u)); }
-  .hero-name .wordmark { display: block; width: calc(658 * var(--u)); height: calc(152 * var(--u)); filter: invert(1); }
-  .hero-name .wordmark.letters { width: calc(485.2 * var(--u)); }
+  .hero-name .wordmark { --ww: 658; display: block; width: calc(var(--ww) * var(--u)); height: calc(152 * var(--u)); filter: invert(1); }
+  .hero-name .wordmark.letters { --ww: 485.2; }   /* another card's mark sets its own width (data-wordmark-units) */
   .hero-name .mark-icon { display: block; width: var(--tile); height: var(--tile); filter: invert(1); }
   /* Menu items after signal-a.studio: light mono labels on a 1px rule; the active item has a dot. */
   .item {
@@ -335,7 +335,47 @@
           </div></div>
           <span class="visually-hidden">A voice, a design system and a new website for Unifize, grown from one idea: the coordination tax. The brand now speaks in its buyers' own words, on a site its team runs without a developer.</span>
         </a>
-        <a class="card" href="#ascii-hero" style="--n: 2; --ground: #2fcf6a; --ink: #0b0d0c">
+        <a class="card" href="project/theatre-ai/" data-logo="project/theatre-ai/media/theatre-ai-mark.svg" style="--n: 2; --ground: #D61D1F; --ink: #fff">
+          <span class="label tags">Website / Product</span>
+          <div class="sheet"><div class="slide">
+            <span class="big">Theatre AI</span>
+            <div class="pic"><video src="project/theatre-ai/media/theatre-ai-card.mp4" poster="project/theatre-ai/media/theatre-ai-card.jpg" muted loop playsinline preload="none"></video></div>
+          </div></div>
+          <span class="visually-hidden">A website and a clickable product for Theatre AI, the rights and consent layer for performers in India, built around one idea: consent is the license.</span>
+        </a>
+        <a class="card" href="project/gargoyle/" data-wordmark="project/gargoyle/media/gargoyle-wordmark.svg" data-wordmark-units="1097.5" data-mark-icon="project/gargoyle/media/gargoyle-icon.webp" style="--n: 3; --ground: #2A2D30; --ink: #F1EEE6">
+          <span class="label tags">Brand / Website</span>
+          <div class="sheet"><div class="slide">
+            <span class="big">Gargoyle</span>
+            <div class="pic"><video src="project/gargoyle/media/gargoyle-card.mp4" poster="project/gargoyle/media/gargoyle-card.jpg" muted loop playsinline preload="none"></video></div>
+          </div></div>
+          <span class="visually-hidden">A mark and a website for Gargoyle, a studio in Siliguri that builds smart homes only on Apple HomeKit: a stone guardian for a name, and a site that prices a home before anyone visits.</span>
+        </a>
+        <a class="card" href="project/bianhua/" data-logo="project/bianhua/media/bianhua-mark.webp" style="--n: 4; --ground: #52333b; --ink: #fff">
+          <span class="label tags">Website / Deck</span>
+          <div class="sheet"><div class="slide">
+            <span class="big">Bianhua</span>
+            <div class="pic"><video src="project/bianhua/media/bianhua-card.mp4" poster="project/bianhua/media/bianhua-card.jpg" muted loop playsinline preload="none"></video></div>
+          </div></div>
+          <span class="visually-hidden">A website and a pitch deck for Jyoti Pathania Salwan, an image and etiquette coach, built around her portrait and her own words.</span>
+        </a>
+        <a class="card" href="project/design-intervention/" data-logo="project/design-intervention/media/design-intervention-logo.svg" style="--n: 5; --ground: #F15F22; --ink: #fff">
+          <span class="label tags">Website</span>
+          <div class="sheet"><div class="slide">
+            <span class="big">Design Intervention</span>
+            <div class="pic"><video src="project/design-intervention/media/design-intervention-card.mp4" poster="project/design-intervention/media/design-intervention-card.jpg" muted loop playsinline preload="none"></video></div>
+          </div></div>
+          <span class="visually-hidden">A website for Design Intervention, a Mumbai studio that designs and builds XR studios, exhibition pavilions, film sets and interiors, with a page for each line of work that opens on the real thing.</span>
+        </a>
+        <a class="card" href="project/trackflow/" data-logo="project/trackflow/media/trackflow-mark.svg" style="--n: 6; --ground: #F73029; --ink: #fff">
+          <span class="label tags">Brand / Website / Product</span>
+          <div class="sheet"><div class="slide">
+            <span class="big">TrackFlow</span>
+            <div class="pic"><video src="project/trackflow/media/trackflow-card.mp4" poster="project/trackflow/media/trackflow-card.jpg" muted loop playsinline preload="none"></video></div>
+          </div></div>
+          <span class="visually-hidden">A website personalisation product whose site rewrites its own hero for each visitor.</span>
+        </a>
+        <a class="card" href="#ascii-hero" style="--n: 7; --ground: #2fcf6a; --ink: #0b0d0c">
           <span class="label tags">Code / Motion</span>
           <div class="sheet"><div class="slide">
             <span class="big">ASCII Hero</span>
@@ -343,7 +383,7 @@
           </div></div>
           <span class="visually-hidden">The hero of this site: a WebGL shader that sets a studio film in live ASCII type, then resolves it into the real picture as you scroll.</span>
         </a>
-        <a class="card" href="#sundial" style="--n: 3; --ground: #ffd21f; --ink: #000">
+        <a class="card" href="#sundial" style="--n: 8; --ground: #ffd21f; --ink: #000">
           <span class="label tags">Film</span>
           <div class="sheet"><div class="slide">
             <span class="big">Sundial</span>
@@ -351,7 +391,7 @@
           </div></div>
           <span class="visually-hidden">A 60 second film concept: one designer, one room, one day, and a monstera's shadow on a concrete wall as the only clock.</span>
         </a>
-        <a class="card" href="#ui-generation" style="--n: 4; --ground: #6d4cf5; --ink: #fff">
+        <a class="card" href="#ui-generation" style="--n: 9; --ground: #6d4cf5; --ink: #fff">
           <span class="label tags">Motion / Code</span>
           <div class="sheet"><div class="slide">
             <span class="big">UI Generation</span>
@@ -359,7 +399,7 @@
           </div></div>
           <span class="visually-hidden">An "agent is building this" animation drawn from any element's own structure: a dot field, a probe line, traced outlines, then a scan line reveal.</span>
         </a>
-        <a class="card" href="#portfolio-stage" style="--n: 5; --ground: #f24b3a; --ink: #fff">
+        <a class="card" href="#portfolio-stage" style="--n: 10; --ground: #f24b3a; --ink: #fff">
           <span class="label tags">Product / Code</span>
           <div class="sheet"><div class="slide">
             <span class="big">Portfolio Stage</span>
@@ -367,7 +407,7 @@
           </div></div>
           <span class="visually-hidden">A one screen portfolio: a bio column beside a GPU stage, with the whole page taking each project's colour as it plays.</span>
         </a>
-        <a class="card end" href="#archive" style="--n: 6; --ground: #ededed; --ink: #000" data-tag="See the archive">
+        <a class="card end" href="#archive" style="--n: 11; --ground: #ededed; --ink: #000" data-tag="See the archive">
           <div class="sheet">
             <p class="end-title"><span class="dot" aria-hidden="true"></span> Recent work in <b>product design</b>, <b>motion</b> and <b>code</b>, each one taken from a first sketch to a <b>working build</b></p>
             <span class="end-link">See the archive <span aria-hidden="true">↗</span></span>
@@ -810,7 +850,7 @@
       // The wordmark stands in for the name, as one word, led by its rendered icon where the card
       // names one.
       el.textContent = '';
-      const { word, icon } = wordmarks[text];
+      const { word, icon, units } = wordmarks[text];
       const w = document.createElement('span'), wi = document.createElement('span');
       w.className = icon ? 'w mark-w has-icon' : 'w mark-w'; wi.className = 'wi';
       if (icon) {
@@ -818,6 +858,7 @@
         wi.appendChild(ic);
       }
       const img = new Image(); img.className = icon ? 'wordmark letters' : 'wordmark'; img.src = word; img.alt = text;
+      if (units) img.style.setProperty('--ww', units);
       wi.appendChild(img); w.appendChild(wi);
       el.append(w);
       return wi;
@@ -1080,7 +1121,7 @@
   const logos = Object.fromEntries(strip.cards.filter(card => card.dataset.logo)
     .map(card => [card.querySelector('.big').textContent, card.dataset.logo]));
   const wordmarks = Object.fromEntries(strip.cards.filter(card => card.dataset.wordmark)
-    .map(card => [card.querySelector('.big').textContent, { word: card.dataset.wordmark, icon: card.dataset.markIcon }]));
+    .map(card => [card.querySelector('.big').textContent, { word: card.dataset.wordmark, icon: card.dataset.markIcon, units: card.dataset.wordmarkUnits }]));
   let titleW = {};
   function layout() {
     const aspect = video.videoWidth ? video.videoWidth / video.videoHeight : 16 / 9;

@@ -1347,6 +1347,11 @@
     if (leaving || intro) return;
     lenis.stop();   // holds the page still; the glide is forced through
     leaving = { card, film, at: toCard(n, GLIDE, true), phase: 'glide', since: performance.now() };
+    // Fetched now, while the card glides and grows, so the case study opens from the cache and the
+    // film's held frame waits on as little as possible.
+    const ahead = document.createElement('link');
+    ahead.rel = 'prefetch'; ahead.href = card.href;
+    document.head.appendChild(ahead);
   }
   function leave(now) {
     const L = leaving;
@@ -1383,6 +1388,8 @@
   function handOver(film, href) {
     film.pause();
     const flight = { to: new URL(href).pathname, time: film.currentTime };
+    // The name's fitted size and offset, so the case study's nav matches from its first paint.
+    if (nameEl.style.fontSize) flight.nav = { size: nameEl.style.fontSize, top: nameEl.style.top || '0px' };
     try {
       const c = document.createElement('canvas');
       c.width = film.videoWidth; c.height = film.videoHeight;

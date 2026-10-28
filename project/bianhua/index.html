@@ -18,7 +18,15 @@
     if (flight && path(flight.to) === path(location.pathname) && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       window.flight = flight;
       document.documentElement.classList.add('dt', 'flight');
-      if (flight.still) document.documentElement.style.setProperty('--still', `url("${flight.still}")`);
+      if (flight.still) {
+        // Decoded from here on, so the still is ready by the first paint (see the flyer).
+        const still = window.flightStill = new Image();
+        still.className = 'still'; still.alt = ''; still.decoding = 'sync'; still.src = flight.still;
+        still.decode().catch(() => {});
+      }
+      // The nav's name at the homepage's fitted size and offset from the first paint, so it does not
+      // jump while this page fits its own (to the same).
+      if (flight.nav) for (const [k, v] of Object.entries(flight.nav)) document.documentElement.style.setProperty(`--nav-name-${k}`, v);
     }
   } catch (e) {}
 </script>
@@ -88,9 +96,10 @@
   .flyer { display: none; }
   .flight .flyer {
     display: block; position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: 10; overflow: hidden;
-    background: #000 var(--still, none) center / cover no-repeat;
+    background: #000;
   }
-  .flyer video { width: 100%; height: 100%; object-fit: cover; }
+  .flyer .still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .flyer video { position: relative; width: 100%; height: 100%; object-fit: cover; }   /* over the still */
   .flight .page { opacity: 1; transition: none; }
   .flight .top { color: #fff; mix-blend-mode: difference; }
   /* Words that snap up into place, each in a clip box the height of its line, as on the homepage. */
@@ -105,7 +114,10 @@
     text-transform: uppercase; color: var(--fg); transition: color .35s ease;
   }
   .top-menu { display: contents; }
-  .name { margin: 0 8px; font: 400 17px/0.86 var(--serif); text-align: center; white-space: nowrap; text-transform: uppercase; }
+  .name {
+    position: relative; top: var(--nav-name-top, 0px);   /* handed over from the homepage on a card's arrival */
+    margin: 0 8px; font: 400 var(--nav-name-size, 17px)/0.86 var(--serif); text-align: center; white-space: nowrap; text-transform: uppercase;
+  }
   .name b { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; }
   .item {
     position: relative; display: flex; align-items: center; gap: 8px; padding: 0 0 10px;
@@ -293,6 +305,7 @@
 <div class="cover" id="cover"></div>
 <div class="page" id="page">
 <div class="flyer" aria-hidden="true"></div>
+<script>if (window.flightStill) document.querySelector('.flyer').appendChild(flightStill);</script>
 <header class="top">
   <nav class="top-menu" aria-label="Primary">
     <a class="item" href="../../#work" aria-current="page"><span class="dot" aria-hidden="true"></span>Work</a>
@@ -472,11 +485,14 @@
   flyer.appendChild(film);
   film.style.opacity = 0;
   const reveal = () => { film.style.opacity = ''; };
-  film.addEventListener('seeked', () => {
-    film.play().catch(() => {});
-    if (film.requestVideoFrameCallback) film.requestVideoFrameCallback(reveal); else requestAnimationFrame(reveal);
-    setTimeout(reveal, 500);
-  }, { once: true });
+  // It is shown on the frame it seeked to, the still's own, and only then played on, so it never
+  // skips ahead of the still.
+  film.pause();
+  film.dataset.hold = '';   // nothing else plays it before then
+  const go = () => { reveal(); delete film.dataset.hold; film.play().catch(() => {}); };
+  // Two frames after the seek lands, the seeked frame is on screen (a paused video reports no new
+  // frames to wait on); landing shows it regardless.
+  film.addEventListener('seeked', () => requestAnimationFrame(() => requestAnimationFrame(go)), { once: true });
   const seek = () => { film.currentTime = flight.time; };
   if (film.readyState >= 1) seek(); else film.addEventListener('loadedmetadata', seek, { once: true });
 
@@ -516,6 +532,7 @@
         width: lerp(root.clientWidth, to.width, e) + 'px', height: lerp(root.clientHeight, to.height, e) + 'px',
       });
       if (ms >= FLIGHT) {
+        go();
         plate.appendChild(film);   // moved in one step, so it keeps playing
         root.classList.remove('flight');
         landed = true;
@@ -581,7 +598,7 @@
   }
   function fitName() {
     const label = top.querySelector('.item');
-    nameEl.style.fontSize = ''; nameEl.style.position = nameEl.style.top = '';
+    nameEl.style.fontSize = ''; nameEl.style.top = '0px';   // measured unshifted
     if (!label.offsetParent) return;
     const labelText = [...label.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
     const rule = label.getBoundingClientRect().bottom - 1;      // top of the 1px rule
@@ -633,7 +650,8 @@
   new IntersectionObserver(entries => entries.forEach(({ target, isIntersecting }) => { if (isIntersecting) target.style.setProperty('--in', 1); }), { rootMargin: '-15% 0px' }).observe(rows[0].parentElement);
   rows.forEach(r => r.style.setProperty('--in', 0));
   const watch = new IntersectionObserver(entries => entries.forEach(({ target, isIntersecting }) => {
-    if (isIntersecting) target.play().catch(() => {}); else target.pause();
+    if (!isIntersecting) target.pause();
+    else if (!('hold' in target.dataset)) target.play().catch(() => {});   // a card's film plays on once shown
   }), { threshold: 0.2 });
   document.querySelectorAll('video').forEach(v => watch.observe(v));
 

@@ -94,10 +94,11 @@
   .finish canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.6; }
   .cover { position: fixed; inset: 0; background: #000; z-index: 99; opacity: 0; pointer-events: none; transition: opacity .6s cubic-bezier(.45, 0, .55, 1); }
   .cover.on { opacity: 1; pointer-events: auto; }
-  /* Arriving from a homepage card (html.flight, from the head script): the card's film opens full
-     bleed, where the homepage left it, on the handed-over still, and shrinks into the first plate
-     (data-flight) while the page builds in around it (see the arrival script). The nav stays put
-     across the two pages, difference blended over the film as on the homepage. */
+  /* Arriving from a homepage card (html.flight, set by the homepage when it swaps this page in, or
+     by the head script after a load): the card's film opens full bleed, where the homepage left it,
+     and shrinks into the first plate (data-flight) while the page builds in around it (see the
+     arrival script). The nav stays put across the two pages, difference blended over the film as on
+     the homepage. */
   .flyer { display: none; }
   .flight .flyer {
     display: block; position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: 10; overflow: hidden;
@@ -463,10 +464,11 @@
 </div>
 
 <script>
-// Arriving from a homepage card (see the head): the film shrinks from full bleed into the first
-// plate over FLIGHT, eased in and out and following the plate if the page scrolls, and plays on from
-// the frame the card stopped on: the page's own copy takes over from the still once it has caught
-// up, and on landing it moves into its plate, still playing. The nav stays put; around the film the
+// Arriving from a homepage card: the film shrinks from full bleed into the first plate over FLIGHT,
+// eased in and out and following the plate if the page scrolls, and on landing it moves into its
+// plate, still playing. Usually the homepage has swapped this page in without a load and hands over
+// its film itself, playing (window.flight.live); after an ordinary load (see the head), this page's
+// own copy plays on from the frame the card stopped on, taking over from the still once caught up. The nav stays put; around the film the
 // page builds in the way the homepage's copy does: the title and the category line snap up word by
 // word as the film clears them, then the panel's rows rise in. Before the main script, so the flight
 // does not wait on Lenis loading.
@@ -483,24 +485,28 @@
   const easeOut = t => 1 - Math.pow(1 - t, 4);
   const root = document.documentElement, page = document.getElementById('page');
   const flyer = page.querySelector('.flyer'), plate = page.querySelector('[data-flight] .plate-in');
-  const film = plate.querySelector('video');
+  const live = flight.live, film = live || plate.querySelector('video');
+  if (live) plate.querySelector('video')?.remove();   // the homepage's film takes its place
   page.classList.add('in');
 
-  // The still shows until the film has seeked to the handed-over time and drawn a frame there.
   const move = (parent, node) => parent.moveBefore ? parent.moveBefore(node, null) : parent.appendChild(node);
   move(flyer, film);
-  film.style.opacity = 0;
-  const reveal = () => { film.style.opacity = ''; };
-  // It is shown on the frame it seeked to, the still's own, and only then played on, so it never
-  // skips ahead of the still.
-  film.pause();
-  film.dataset.hold = '';   // nothing else plays it before then
-  const go = () => { reveal(); delete film.dataset.hold; film.play().catch(() => {}); };
-  // Two frames after the seek lands, the seeked frame is on screen (a paused video reports no new
-  // frames to wait on); landing shows it regardless.
-  film.addEventListener('seeked', () => requestAnimationFrame(() => requestAnimationFrame(go)), { once: true });
-  const seek = () => { film.currentTime = flight.time; };
-  if (film.readyState >= 1) seek(); else film.addEventListener('loadedmetadata', seek, { once: true });
+  let go = () => {};
+  if (!live) {
+    // The still shows until the film has seeked to the handed-over time and drawn a frame there.
+    film.style.opacity = 0;
+    const reveal = () => { film.style.opacity = ''; };
+    // It is shown on the frame it seeked to, the still's own, and only then played on, so it never
+    // skips ahead of the still.
+    film.pause();
+    film.dataset.hold = '';   // nothing else plays it before then
+    go = () => { reveal(); delete film.dataset.hold; film.play().catch(() => {}); };
+    // Two frames after the seek lands, the seeked frame is on screen (a paused video reports no new
+    // frames to wait on); landing shows it regardless.
+    film.addEventListener('seeked', () => requestAnimationFrame(() => requestAnimationFrame(go)), { once: true });
+    const seek = () => { film.currentTime = flight.time; };
+    if (film.readyState >= 1) seek(); else film.addEventListener('loadedmetadata', seek, { once: true });
+  }
 
   // Every word in a clip box, starting below it.
   function splitWords(el) {

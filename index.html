@@ -453,6 +453,11 @@
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
 <script>
 (() => {
+  // Every window listener this page adds goes through here, so they can all be let go when a case
+  // study takes the page over in place (see teardown).
+  const listeners = [];
+  const addEventListener = (type, fn, opts) => { window.addEventListener(type, fn, opts); listeners.push([type, fn, opts]); };
+  let stopped = false;
   const canvas = document.getElementById('gl');
   const video = document.getElementById('vid');
   // ?export keeps the drawing buffer so frames can be read back for video export;
@@ -1338,9 +1343,12 @@
   // study, which shrinks it from full bleed into its first plate (see the arrival there). Here the
   // card first glides to the middle and zooms back in, if it is not there already; then the film
   // lifts out of the row and grows to fill the window over GROW, while the nav title rolls back to
-  // the name and the menu links roll back in with it, as the case study's nav reads. The film stops on that frame, which is handed over with
-  // its time (the case study shows the still until its own copy has caught up), and the page opens.
-  // Coming back from the back/forward cache plays it in reverse. Reduced motion just opens the page.
+  // the name and the menu links roll back in with it, as the case study's nav reads. Meanwhile the
+  // case study is fetched, and once the film fills the window it takes this page over in place, with
+  // no load (see swapIn): the film is the same element throughout, still playing. Should the fetch
+  // fail, the page opens as an ordinary navigation, handing over the film's still and time instead
+  // (see handOver); coming back to it from the back/forward cache plays the grow in reverse.
+  // Reduced motion just opens the page.
   const GROW = 850, GLIDE = 0.8;
   const easeInOutQuart = t => t < 0.5 ? 8 * t ** 4 : 1 - Math.pow(-2 * t + 2, 4) / 2;
   let leaving = null;
@@ -1353,11 +1361,7 @@
     if (leaving || intro) return;
     lenis.stop();   // holds the page still; the glide is forced through
     leaving = { card, film, at: toCard(n, GLIDE, true), phase: 'glide', since: performance.now() };
-    // Fetched now, while the card glides and grows, so the case study opens from the cache and the
-    // film's held frame waits on as little as possible.
-    const ahead = document.createElement('link');
-    ahead.rel = 'prefetch'; ahead.href = card.href;
-    document.head.appendChild(ahead);
+    leaving.page = fetch(card.href).then(r => r.ok ? r.text() : null).catch(() => null);
   }
   function leave(now) {
     const L = leaving;
@@ -1389,7 +1393,58 @@
       return;
     }
     L.phase = 'gone';
-    handOver(L.film, L.card.href);
+    swapIn(L);
+  }
+
+  // The case study takes this page over without a load, once its HTML is in (the film plays on
+  // full bleed while it waits). This page stops (teardown), the address becomes the case study's,
+  // the head keeps what the two pages share (the fonts) and swaps the rest, the body is replaced
+  // and its scripts run, all before the next frame, so no half-swapped page is ever drawn. The
+  // case study's arrival is handed this page's film, still playing, as window.flight.live, and the
+  // nav's fitted size so its name matches from the start. Going back loads this page afresh.
+  async function swapIn(L) {
+    const html = await L.page;
+    if (!html) return handOver(L.film, L.card.href);
+    const next = new DOMParser().parseFromString(html, 'text/html');
+    const nav = nameEl.style.fontSize ? { size: nameEl.style.fontSize, top: nameEl.style.top || '0px' } : null;
+    const loaded = new Set([...document.scripts].map(s => s.src).filter(Boolean));
+    teardown();
+    window.addEventListener('popstate', () => location.reload());
+    history.pushState({ caseStudy: true }, '', L.card.href);   // first, so its relative addresses resolve from it
+
+    const head = document.head, kept = [...head.children];
+    for (const el of kept) if (![...next.head.children].some(n => n.isEqualNode(el))) el.remove();
+    for (const el of [...next.head.children]) {
+      if (el.tagName === 'SCRIPT' || el.rel === 'expect' || kept.some(o => o.isEqualNode(el) && o.isConnected)) continue;
+      head.appendChild(document.adoptNode(el));
+    }
+
+    const root = document.documentElement;
+    root.removeAttribute('style');
+    root.className = 'dt flight';
+    if (nav) for (const [k, v] of Object.entries(nav)) root.style.setProperty(`--nav-name-${k}`, v);
+    window.flight = { live: L.film };
+    for (const n of [...document.body.childNodes]) if (n !== L.flyer) n.remove();
+    for (const n of [...next.body.childNodes]) document.body.insertBefore(document.adoptNode(n), L.flyer);
+    scrollTo(0, 0);
+    // Parsed scripts are inert; each is run by putting a fresh copy in its place, in order. Lenis is
+    // already loaded here.
+    for (const old of [...document.body.querySelectorAll('script')]) {
+      if (old.src && loaded.has(old.src)) { old.remove(); continue; }
+      const s = document.createElement('script');
+      for (const a of old.attributes) s.setAttribute(a.name, a.value);
+      s.textContent = old.textContent;
+      if (s.src) await new Promise(r => { s.onload = s.onerror = r; old.replaceWith(s); });
+      else old.replaceWith(s);
+    }
+    L.flyer.remove();   // the arrival has moved the film into the case study's own flyer
+  }
+  // Stops this page for good: its frame loop, the window listeners it added, Lenis and the WebGL context.
+  function teardown() {
+    stopped = true;
+    listeners.forEach(([type, fn, opts]) => window.removeEventListener(type, fn, opts));
+    if (lenis) lenis.destroy();
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
   }
   function handOver(film, href) {
     film.pause();
@@ -1418,6 +1473,7 @@
 
   let lastNow = 0, cleared = false;
   function frame(now) {
+    if (stopped) return;
     const dt = Math.min((now - (lastNow || now)) / 1000, 0.05);
     lastNow = now;
     if (lenis) lenis.raf(now);

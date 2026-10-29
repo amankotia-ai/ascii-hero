@@ -230,17 +230,6 @@
   }
   .label.tags { right: 0; transform-origin: 100% 100%; font: 300 12px/1 var(--mono); text-transform: uppercase; }
   .strip .w { clip-path: inset(-0.4em -0.3em 0 -0.3em); }
-  /* The last card closes the row: the work statement, justified to 3 lines, and the archive. */
-  .card.end .sheet { display: flex; flex-direction: column; justify-content: space-between; padding: var(--pad); }
-  .end-title {
-    margin: 0; font: 400 40px/0.86 var(--serif); text-transform: uppercase; text-align: justify; text-align-last: justify;
-  }
-  .end-title b, .end-link { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; }
-  .end-title .dot {
-    display: inline-block; width: 0.62em; height: 0.62em; border-radius: 50%;
-    background: currentColor; vertical-align: 0.02em; margin-right: 0.08em;
-  }
-  .end-link { align-self: flex-start; font-size: 40px; line-height: 0.86; text-transform: uppercase; white-space: nowrap; }
   @media (hover: hover) and (pointer: fine) { .card { cursor: none; } }
   .strip:has(.card:hover) > .cursor-tag { opacity: 1; }
 
@@ -283,7 +272,6 @@
     .reel-row { grid-template-columns: 1fr auto 1fr; column-gap: 12px; }
     .reel-row .wide { display: none; }
     .label.tags { display: none; }
-    .end-title { text-align: left; text-align-last: left; }   /* short lines: justified, they gape */
   }
 
   @media (max-width: 520px) {
@@ -378,12 +366,6 @@
             <div class="pic"><video src="project/design-intervention/media/design-intervention-card.mp4" poster="project/design-intervention/media/design-intervention-card.jpg" muted loop playsinline preload="none"></video></div>
           </div></div>
           <span class="visually-hidden">A website for Design Intervention, a Mumbai studio that designs and builds XR studios, exhibition pavilions, film sets and interiors, with a page for each line of work that opens on the real thing.</span>
-        </a>
-        <a class="card end" href="#archive" style="--n: 7; --ground: #ededed; --ink: #000" data-tag="See the archive">
-          <div class="sheet">
-            <p class="end-title"><span class="dot" aria-hidden="true"></span> Recent work in <b>product design</b>, <b>motion</b> and <b>code</b>, each one taken from a first sketch to a <b>working build</b></p>
-            <span class="end-link">See the archive <span aria-hidden="true">↗</span></span>
-          </div>
         </a>
       </div>
       <span class="cursor-tag" aria-hidden="true">( Open project )</span>
@@ -910,7 +892,6 @@
   const GAP = 1 / 30;          // of the card width (rauno.me: 40 px on a 1200 px card)
   const ZOOM_OUT = 0.5;        // of one card's scroll
   const SLIDE_SPEED = 2;       // most a giant name may move, as a multiple of the card's own speed
-  const END_LINES = 3, END_PHONE_LINES = 6;   // the closing statement; phone cards are tall
   const TRACK = 160, TICKS = 20, TICK_PITCH = 10, TRACKER_W = 30;
   const zoomSpring = spring(500, 50, 1, 1);
   const trackSpring = spring(620, 45, 0.2, 0);
@@ -921,8 +902,6 @@
     const minimap = document.querySelector('.minimap');
     const tracker = minimap.querySelector('.tracker');
     const tag = el.querySelector('.cursor-tag');
-    const endTitle = row.querySelector('.end-title');
-    const endLink = row.querySelector('.end-link');
     const ticks = Array.from({ length: TICKS }, () => {
       const t = document.createElement('span');
       t.className = 'tick';
@@ -965,14 +944,6 @@
           part.travel = part.slide.offsetWidth - W;
         }
         part.x = null;
-      }
-      if (endTitle) {
-        endTitle.style.width = W * 0.9 + 'px';
-        fitLines(endTitle, phone ? END_PHONE_LINES : END_LINES);
-        // The archive link takes the statement's size, or less if it would not fit on one line.
-        const size = parseFloat(endTitle.style.fontSize);
-        endLink.style.fontSize = size + 'px';
-        endLink.style.fontSize = size * Math.min(1, W * 0.9 / endLink.offsetWidth) + 'px';
       }
       last = {};
     }

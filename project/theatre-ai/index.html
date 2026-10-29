@@ -275,6 +275,7 @@
     .media { gap: 8px; }
     .plate.half, .plate.third { grid-column: 1 / -1; }
     .plate.r32 .plate-in { aspect-ratio: 16 / 9; }
+    .plate.phone-tall .plate-in { aspect-ratio: 1080 / 2200; }   /* the card film's phone cut */
     .next, .build { padding: 64px 0; }
     .cards { grid-template-columns: 1fr; gap: 36px; }
     .contact-in { gap: 40px; }
@@ -334,9 +335,11 @@
     <div class="meta" data-load>
       <div class="media">
 
-        <figure class="plate r169" data-flight>
-          <div class="plate-in"><video src="media/theatre-ai-card.mp4" poster="media/theatre-ai-card.jpg" muted loop playsinline autoplay preload="metadata"></video></div>
+        <!-- On phones the card's tall cut lands here, so the plate takes its shape. -->
+        <figure class="plate r169 phone-tall" data-flight>
+          <div class="plate-in"><video poster="media/theatre-ai-card.jpg" data-phone-poster="media/theatre-ai-card-mobile.jpg" muted loop playsinline autoplay preload="metadata"><source src="media/theatre-ai-card-mobile.mp4" media="(max-width: 767px)"><source src="media/theatre-ai-card.mp4"></video></div>
         </figure>
+        <script>if (matchMedia('(max-width: 767px)').matches) document.querySelectorAll('video[data-phone-poster]').forEach(v => { v.poster = v.dataset.phonePoster; });</script>
 
         <figure class="plate r169">
           <div class="plate-in"><video src="media/boards/herofilm.mp4" poster="media/boards/herofilm.webp" muted loop playsinline preload="none" aria-label="The homepage hero&rsquo;s animation: portrait cards stream past a scanner line and turn into code as they cross it"></video></div>
@@ -390,10 +393,6 @@
         <div class="acc" data-open="false">
           <button class="acc-q" type="button" aria-expanded="false">Solution <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path d="M12 7v10M7 12h10"/></svg></button>
           <div class="acc-a"><div><p>I wrote the scope that everything else was held to, and Nehal accepted it the evening I presented it. Phase one was trust and clearance, and it made every actor one promise: nothing can be used unless I allow it. Everything followed from that. In the product, the actor&rsquo;s consent is the policy itself: which uses, which territories, and whether AI may learn from the work or only perform with it. Studios search for talent it already clears, licenses are drawn from it, and every use is recorded against it for the actor to see.</p><p>On the website the product explains itself. In place of illustrations, each feature shows one of its objects at work: a request screened against an actor&rsquo;s terms, a gate a studio clears before anything is made, a payment traced to the actor&rsquo;s net payout. The app stays quiet, white cards on grey with hairline rules and one red, kept for the moments a decision is made. The finish is local: identity by Aadhaar, PAN or passport, proof by IMDb or a CINTAA card, a voice sample read from a Hindi or English script and recorded in the browser. Theatre AI has a live site that sends every demo request straight to the founder&rsquo;s Notion, and a clickable product for actors, studios and agencies, ready for its backend to be built against.</p></div></div>
-        </div>
-        <div class="acc" data-open="false">
-          <button class="acc-q" type="button" aria-expanded="false">Credits <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path d="M12 7v10M7 12h10"/></svg></button>
-          <div class="acc-a"><div><p>Client: Theatre AI<br>Founder: Nehal Jain<br>Scope, website, product design and frontend: Abhishek Mankotia<br>Live: March 2026, product through September 2026</p></div></div>
         </div>
       </aside>
     </div>

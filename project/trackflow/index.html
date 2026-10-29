@@ -275,6 +275,7 @@
     .media { gap: 8px; }
     .plate.half, .plate.third { grid-column: 1 / -1; }
     .plate.r32 .plate-in { aspect-ratio: 16 / 9; }
+    .plate.phone-tall .plate-in { aspect-ratio: 1080 / 2200; }   /* the card film's phone cut */
     .next, .build { padding: 64px 0; }
     .cards { grid-template-columns: 1fr; gap: 36px; }
     .contact-in { gap: 40px; }
@@ -334,9 +335,10 @@
     <div class="meta" data-load>
       <div class="media">
 
-        <figure class="plate r169" data-flight>
-          <div class="plate-in"><video src="media/trackflow-card.mp4" poster="media/trackflow-card.jpg" muted loop playsinline autoplay preload="metadata"></video></div>
+        <figure class="plate r169 phone-tall" data-flight>
+          <div class="plate-in"><video poster="media/trackflow-card.jpg" data-phone-poster="media/trackflow-card-mobile.jpg" muted loop playsinline autoplay preload="metadata"><source src="media/trackflow-card-mobile.mp4" media="(max-width: 767px)"><source src="media/trackflow-card.mp4"></video></div>
         </figure>
+        <script>if (matchMedia('(max-width: 767px)').matches) document.querySelectorAll('.plate-in video[data-phone-poster]').forEach(v => { v.poster = v.dataset.phonePoster; });</script>
 
         <figure class="plate r169">
           <div class="plate-in"><img src="media/boards/mark.webp" alt="The TrackFlow lockup in white on the brand red: a pixel compass beside TRACK and FLOW stacked in pixel letters" loading="lazy"></div>
@@ -390,10 +392,6 @@
         <div class="acc" data-open="false">
           <button class="acc-q" type="button" aria-expanded="false">Solution <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path d="M12 7v10M7 12h10"/></svg></button>
           <div class="acc-a"><div><p>The site leads with the promise in sales terms: make each site visit as personal as a sales call. I made it show the idea before it explains it. Its hero is a working demo, a made-up SaaS page that rewrites its headline, line and button as the visitor&rsquo;s source changes from direct to Y Combinator, G2 or GitHub, each time with the same soft blur. Around it the brand is drawn in pixels, a compass mark and a set of icons in one red on warm paper, with every section framed in a hairline of the same red.</p><p>In the app I made a playbook a canvas of cause and effect: a trigger, such as a campaign source, an exit intent or a returning visitor, wired to operations that replace text, swap an image, open an overlay or redirect. Templates cover the common plays, from an exit intent offer to a headline that matches the campaign. The script holds the page back for a moment, so the original copy never flashes. In December the app went to black, white and grey, keeping colour only to tell a trigger from an operation. TrackFlow went live in July 2025, and its own site runs on it.</p></div></div>
-        </div>
-        <div class="acc" data-open="false">
-          <button class="acc-q" type="button" aria-expanded="false">Credits <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path d="M12 7v10M7 12h10"/></svg></button>
-          <div class="acc-a"><div><p>Product: TrackFlow<br>Website, app, design and engineering: Abhishek Mankotia<br>Live: July 2025</p></div></div>
         </div>
       </aside>
     </div>

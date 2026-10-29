@@ -302,6 +302,7 @@
   </filter>
 </svg>
 <video id="vid" src="clip.mp4" muted loop playsinline autoplay crossorigin="anonymous"></video>
+<video id="reel" src="work/showreel.mp4" muted loop playsinline preload="auto" crossorigin="anonymous"></video>
 <header class="hero-top">
   <nav class="hero-menu" aria-label="Primary">
     <a class="item" href="#work" aria-current="page"><span class="dot" aria-hidden="true"></span>Work</a>
@@ -363,7 +364,7 @@
           <span class="label tags">Website</span>
           <div class="sheet"><div class="slide">
             <span class="big">Design Intervention</span>
-            <div class="pic"><video src="project/design-intervention/media/design-intervention-card.mp4" poster="project/design-intervention/media/design-intervention-card.jpg" muted loop playsinline preload="none"></video></div>
+            <div class="pic"><video poster="project/design-intervention/media/design-intervention-card.jpg" data-phone-poster="project/design-intervention/media/design-intervention-card-mobile.jpg" muted loop playsinline preload="none"><source src="project/design-intervention/media/design-intervention-card-mobile.mp4" media="(max-width: 767px)"><source src="project/design-intervention/media/design-intervention-card.mp4"></video></div>
           </div></div>
           <span class="visually-hidden">A website for Design Intervention, a Mumbai studio that designs and builds XR studios, exhibition pavilions, film sets and interiors, with a page for each line of work that opens on the real thing.</span>
         </a>
@@ -374,7 +375,7 @@
     <p class="hero-desc"><span class="dot" aria-hidden="true"></span> An independent <br class="phone-br"><b>designer</b> &amp; <b>engineer</b>,<br> from first sketch to <br class="phone-br"><b>shipped product</b></p>
     <footer class="reel-row" title="Seek">
       <span class="reel-tc">00:00:00:00</span>
-      <span class="wide">24 fps</span>
+      <span class="wide">60 fps</span>
       <span>Reel 01</span>
       <span class="wide">Product, motion, code</span>
       <span class="reel-dur">00:00:06:00</span>
@@ -410,6 +411,8 @@
   let stopped = false;
   const canvas = document.getElementById('gl');
   const video = document.getElementById('vid');
+  // The showreel film arrives where the clip used to resolve: the hero stays the studio clip in ASCII.
+  const reel = document.getElementById('reel');
   // ?export keeps the drawing buffer so frames can be read back for video export;
   // &frame=N sets an even N px frame on every side for that export.
   const params = new URLSearchParams(location.search);
@@ -647,6 +650,7 @@
   }
   const videoTex = makeTex(0);
   const atlasTex = makeTex(1);
+  const reelTex = makeTex(2);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
   // Glyph atlas: one row of square 52px glyphs, white on black, ordered dense to blank.
@@ -1233,10 +1237,10 @@
   }
 
   function syncTag() {
-    const reel = p >= 0.5;
-    const label = reel ? (video.muted ? 'Sound on' : 'Sound off') : 'Watch reel';
+    const onReel = p >= 0.5;
+    const label = onReel ? (reel.muted ? 'Sound on' : 'Sound off') : 'Watch reel';
     if (cursor.textContent !== `( ${label} )`) cursor.textContent = `( ${label} )`;
-    screen.setAttribute('aria-label', reel ? `Turn ${label.toLowerCase()}` : 'Watch the reel');
+    screen.setAttribute('aria-label', onReel ? `Turn ${label.toLowerCase()}` : 'Watch the reel');
   }
   video.addEventListener('volumechange', syncTag);
 
@@ -1251,15 +1255,19 @@
     if (p < 0.5) {
       if (lenis) lenis.scrollTo(runway + reelAt(), { duration: 2.4 }); else scrollTo(0, runway + reelAt());
     } else {
-      video.muted = !video.muted;
-      video.play().catch(() => {});
+      reel.muted = !reel.muted;
+      reel.play().catch(() => {});
     }
   });
   reelRow.addEventListener('click', e => {
     const r = reelRow.getBoundingClientRect();
-    if (video.duration) video.currentTime = span(e.clientX, r.left, r.right) * video.duration;
+    if (reel.duration) reel.currentTime = span(e.clientX, r.left, r.right) * reel.duration;
   });
-  video.addEventListener('loadedmetadata', () => { dur.textContent = timecode(video.duration); });
+  // the reel may already have its metadata by the time this runs
+  const showDur = () => { if (reel.duration) dur.textContent = timecode(reel.duration); };
+  reel.addEventListener('loadedmetadata', showDur);
+  showDur();
+  reel.addEventListener('volumechange', syncTag);
   // Work in the nav brings the first project to the middle; focusing a card (Tab) brings it there.
   // The glide is the settle, zooming back in on the way: settling from wherever the glide had got to
   // would turn it back to the nearest card (a programmatic scroll's target is where it is now).
@@ -1435,10 +1443,16 @@
     const visible = !rect || rect.x + rect.w > 0;
     if (!visible && !video.paused) { video.muted = true; video.pause(); }
     else if (visible && video.paused && !userPaused) video.play().catch(() => {});
+    // The reel waits on its first frame (the white page) while the hero turns into the showreel,
+    // plays from there once the frame has landed, and goes back to the start when scrolled back up.
+    const landed = !intro && p >= 0.75 && visible;
+    if (landed && reel.paused && !userPaused) reel.play().catch(() => {});
+    else if (!landed && !reel.paused) { reel.pause(); if (!visible) reel.muted = true; }
+    if (!intro && p < 0.5 && reel.currentTime > 0) reel.currentTime = 0;
 
-    if (video.readyState >= 1 && p > 0.5) {
-      tc.textContent = timecode(video.currentTime);
-      reelRow.style.setProperty('--played', video.duration ? video.currentTime / video.duration : 0);
+    if (reel.readyState >= 1 && p > 0.5) {
+      tc.textContent = timecode(reel.currentTime);
+      reelRow.style.setProperty('--played', reel.duration ? reel.currentTime / reel.duration : 0);
     }
     if (exporting) rect = { x: 0, y: 0, w: canvas.clientWidth, h: canvas.clientHeight };
     if (rect) {
@@ -1460,17 +1474,25 @@
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, videoTex);
     if (video.readyState >= 2) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+    // The clip is the ASCII hero (A). What arrives (B) is the showreel film once the page has built in;
+    // the load build itself is the clip arriving as glyphs. B switches only while it is still hidden (p <= 0.1).
+    const useReel = !intro && p > 0.1 && reel.readyState >= 2;
+    if (useReel) {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, reelTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, reel);
+    }
     gl.uniform1i(U.uTexA, 0);
-    gl.uniform1i(U.uTexB, 0);
+    gl.uniform1i(U.uTexB, useReel ? 2 : 0);
     gl.uniform1i(U.uAtlas, 1);
 
-    // Both pictures are the clip: as ASCII (A) and as itself (B). The load build has nothing before.
     const aspect = video.videoWidth ? video.videoWidth / video.videoHeight : 16 / 9;
     gl.uniform2f(U.uOrigin, r.x * dpr, canvas.height - (r.y + r.h) * dpr);
     gl.uniform2f(U.uRes, r.w * dpr, r.h * dpr);
-    gl.uniform1f(U.uAspectA, aspect); gl.uniform1f(U.uAspectB, aspect);
-    gl.uniform1f(U.uZoomA, 0.82); gl.uniform1f(U.uZoomB, 0.82);
-    gl.uniform1f(U.uMarkA, 1); gl.uniform1f(U.uMarkB, 1);
+    gl.uniform1f(U.uAspectA, aspect); gl.uniform1f(U.uAspectB, useReel ? reel.videoWidth / reel.videoHeight : aspect);
+    // the reel is composed to its own frame edges, so it is shown whole and has no watermark to hide
+    gl.uniform1f(U.uZoomA, 0.82); gl.uniform1f(U.uZoomB, useReel ? 1 : 0.82);
+    gl.uniform1f(U.uMarkA, 1); gl.uniform1f(U.uMarkB, useReel ? 0 : 1);
     gl.uniform1f(U.uRealA, 0); gl.uniform1f(U.uRealB, empty ? 0 : 1);
     gl.uniform1f(U.uHasA, empty ? 0 : 1);
     gl.uniform1f(U.uT, sweep);

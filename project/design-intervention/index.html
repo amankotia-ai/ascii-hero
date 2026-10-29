@@ -278,6 +278,7 @@
     .media { gap: 8px; }
     .plate.half, .plate.third { grid-column: 1 / -1; }
     .plate.r32 .plate-in { aspect-ratio: 16 / 9; }
+    .plate.phone-tall .plate-in { aspect-ratio: 1080 / 2200; }   /* the card film's phone cut */
     .next, .build { padding: 64px 0; }
     .cards { grid-template-columns: 1fr; gap: 36px; }
     .contact-in { gap: 40px; }
@@ -337,21 +338,22 @@
     <div class="meta" data-load>
       <div class="media">
 
-        <figure class="plate r169" data-flight>
-          <div class="plate-in"><video src="media/design-intervention-card.mp4" poster="media/design-intervention-card.jpg" muted loop playsinline autoplay preload="metadata" aria-label="The five service rooms from the site land one after another on the same mark on a white cyclorama, each named under it"></video></div>
+        <figure class="plate r169 phone-tall" data-flight>
+          <div class="plate-in"><video poster="media/design-intervention-card.jpg" data-phone-poster="media/design-intervention-card-mobile.jpg" muted loop playsinline autoplay preload="metadata" aria-label="On air: the home page&rsquo;s headline in a sunset world on an LED wall. The camera pulls back past the jib camera to the XR stage and the studio around it, then pushes into the director&rsquo;s monitor, whose picture is the opening shot again"><source src="media/design-intervention-card-mobile.mp4" media="(max-width: 767px)"><source src="media/design-intervention-card.mp4"></video></div>
         </figure>
+        <script>if (matchMedia('(max-width: 767px)').matches) document.querySelectorAll('.plate-in video[data-phone-poster]').forEach(v => { v.poster = v.dataset.phonePoster; });</script>
 
         <figure class="plate r169">
           <div class="plate-in"><img src="media/boards/hero.webp" alt="The home page hero: The Cutting Edge of Visual Experiences, with a robotic camera arm facing a curved LED wall" loading="lazy"></div>
         </figure>
         <figure class="plate r169">
-          <div class="plate-in"><img src="media/boards/rooms.webp" alt="The five services as five small rooms on one ground line: XR Studios, Exhibition Design, Film and TV Production, Specialty Fabrication, Interior Design" loading="lazy"></div>
+          <div class="plate-in"><img src="media/boards/rooms.webp" alt="The five services as five rooms rebuilt at full size, hung in a row: an XR stage, an exhibition booth, a film set, a CNC workshop and a living room, named XR Studios, Exhibition Design, Film and TV Production, Specialty Fabrication and Interior Design" loading="lazy"></div>
         </figure>
         <figure class="plate r169">
           <div class="plate-in"><img src="media/boards/menu.webp" alt="The Services menu, open, with a line for each of the five services" loading="lazy"></div>
         </figure>
         <figure class="plate r169">
-          <div class="plate-in"><img src="media/boards/exhibition.webp" alt="The Exhibition Design page opening on its own room, an exhibition stall" loading="lazy"></div>
+          <div class="plate-in"><img src="media/boards/exhibition.webp" alt="The Exhibition Design page&rsquo;s title beside its room, rebuilt as a timber exhibition booth with the site&rsquo;s Services menu on its screen" loading="lazy"></div>
         </figure>
         <figure class="plate r169">
           <div class="plate-in"><img src="media/boards/xr.webp" alt="The XR page&rsquo;s heading, Virtual Production, Real-world Results, in Design Intervention&rsquo;s own Arya Studio" loading="lazy"></div>
@@ -383,7 +385,7 @@
         </div>
         <div class="acc" data-open="false">
           <button class="acc-q" type="button" aria-expanded="false">Solution <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path d="M12 7v10M7 12h10"/></svg></button>
-          <div class="acc-a"><div><p>I built the site the way the studio sells, with a page for each line of work: XR studios, exhibitions, film and TV, specialty fabrication and interiors. Every one of them opens the same way, on a title and a picture of that kind of room, so the five read as one studio. Each page then hands over to the real thing, Design Intervention's own studios, pavilions and sets, brought out of the profile decks they had lived in.</p><p>Everything else stays quiet: white pages in the system's own type, headings and pictures that rise out of a soft blur as they arrive, and the company's orange kept for labels, the active link and the call to action that closes each service page. The site went live in November 2025 at mumbai.designintervention.biz, and the company's own domain now opens on a choice between its Mumbai and Goa branches.</p></div></div>
+          <div class="acc-a"><div><p>I built the site the way the studio sells, with a page for each line of work: XR studios, exhibitions, film and TV, specialty fabrication and interiors. Every one of them opens the same way, on a title and a picture of that kind of room, so the five read as one studio. Each page then hands over to the real thing, Design Intervention's own studios, pavilions and sets, brought out of the profile decks they had lived in. For this case study I rebuilt the site’s five rooms at full size, as places you could stand in; on the site they stay small isometric pictures.</p><p>Everything else stays quiet: white pages in the system's own type, headings and pictures that rise out of a soft blur as they arrive, and the company's orange kept for labels, the active link and the call to action that closes each service page. The site went live in November 2025 at mumbai.designintervention.biz, and the company's own domain now opens on a choice between its Mumbai and Goa branches.</p></div></div>
         </div>
       </aside>
     </div>

@@ -343,7 +343,7 @@
           <span class="label tags">Website / Product</span>
           <div class="sheet"><div class="slide">
             <span class="big">Theatre AI</span>
-            <div class="pic"><video src="project/theatre-ai/media/theatre-ai-card.mp4" poster="project/theatre-ai/media/theatre-ai-card.jpg" muted loop playsinline preload="none"></video></div>
+            <div class="pic"><video poster="project/theatre-ai/media/theatre-ai-card.jpg" data-phone-poster="project/theatre-ai/media/theatre-ai-card-mobile.jpg" muted loop playsinline preload="none"><source src="project/theatre-ai/media/theatre-ai-card-mobile.mp4" media="(max-width: 767px)"><source src="project/theatre-ai/media/theatre-ai-card.mp4"></video></div>
           </div></div>
           <span class="visually-hidden">A website and a clickable product for Theatre AI, the rights and consent layer for performers in India, built around one idea: consent is the license.</span>
         </a>
@@ -351,7 +351,7 @@
           <span class="label tags">Brand / Website</span>
           <div class="sheet"><div class="slide">
             <span class="big">Gargoyle</span>
-            <div class="pic"><video src="project/gargoyle/media/gargoyle-card.mp4" poster="project/gargoyle/media/gargoyle-card.jpg" muted loop playsinline preload="none"></video></div>
+            <div class="pic"><video poster="project/gargoyle/media/gargoyle-card.jpg" data-phone-poster="project/gargoyle/media/gargoyle-card-mobile.jpg" muted loop playsinline preload="none"><source src="project/gargoyle/media/gargoyle-card-mobile.mp4" media="(max-width: 767px)"><source src="project/gargoyle/media/gargoyle-card.mp4"></video></div>
           </div></div>
           <span class="visually-hidden">A mark and a website for Gargoyle, a studio in Siliguri that builds smart homes only on Apple HomeKit: a stone guardian for a name, and a site that prices a home before anyone visits.</span>
         </a>
@@ -375,7 +375,7 @@
           <span class="label tags">Brand / Website / Product</span>
           <div class="sheet"><div class="slide">
             <span class="big">TrackFlow</span>
-            <div class="pic"><video src="project/trackflow/media/trackflow-card.mp4" poster="project/trackflow/media/trackflow-card.jpg" muted loop playsinline preload="none"></video></div>
+            <div class="pic"><video poster="project/trackflow/media/trackflow-card.jpg" data-phone-poster="project/trackflow/media/trackflow-card-mobile.jpg" muted loop playsinline preload="none"><source src="project/trackflow/media/trackflow-card-mobile.mp4" media="(max-width: 767px)"><source src="project/trackflow/media/trackflow-card.mp4"></video></div>
           </div></div>
           <span class="visually-hidden">A website personalisation product whose site rewrites its own hero for each visitor.</span>
         </a>
@@ -1050,6 +1050,9 @@
       return { x: g.cx - g.W * z / 2 + x, y: g.cy - g.H * z / 2, w: g.W * z, h: g.H * z };
     }
 
+    // A card can carry a phone cut of its film, a tall <source> for the phone breakpoint, with its own
+    // poster.
+    if (matchMedia(`(max-width: ${PHONE_MAX}px)`).matches) row.querySelectorAll('video[data-phone-poster]').forEach(v => { v.poster = v.dataset.phonePoster; });
     // Videos play only while on screen.
     const watch = new IntersectionObserver(entries => entries.forEach(({ target, isIntersecting }) => {
       if (isIntersecting) target.play().catch(() => {}); else target.pause();

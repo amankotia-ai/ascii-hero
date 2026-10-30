@@ -232,6 +232,9 @@
   .strip .w { clip-path: inset(-0.4em -0.3em 0 -0.3em); }
   @media (hover: hover) and (pointer: fine) { .card { cursor: none; } }
   .strip:has(.card:hover) > .cursor-tag { opacity: 1; }
+  /* A card without its page yet: no ( Open project ) tag, the ordinary pointer */
+  .strip:has(.card[href^="#"]:hover) > .cursor-tag { opacity: 0; }
+  @media (hover: hover) and (pointer: fine) { .card[href^="#"] { cursor: default; } }
 
   /* Minimap, where the timecode row was: a comb of ticks and a tracker box that pushes through it
      as the row moves. */
@@ -367,6 +370,14 @@
             <div class="pic"><video poster="project/design-intervention/media/design-intervention-card.jpg" data-phone-poster="project/design-intervention/media/design-intervention-card-mobile.jpg" muted loop playsinline preload="none"><source src="project/design-intervention/media/design-intervention-card-mobile.mp4" media="(max-width: 767px)"><source src="project/design-intervention/media/design-intervention-card.mp4"></video></div>
           </div></div>
           <span class="visually-hidden">A website for Design Intervention, a Mumbai studio that designs and builds XR studios, exhibition pavilions, film sets and interiors, with a page for each line of work that opens on the real thing.</span>
+        </a>
+        <a class="card" href="project/freebyrd/" data-logo="project/freebyrd/media/freebyrd-icon.svg" style="--n: 7; --ground: #000; --ink: #f5f5f7">
+          <span class="label tags">Product / Mac app / Film</span>
+          <div class="sheet"><div class="slide">
+            <span class="big">Freebyrd</span>
+            <div class="pic"><video src="project/freebyrd/media/freebyrd-card.mp4" poster="project/freebyrd/media/freebyrd-card.jpg" muted loop playsinline preload="none"></video></div>
+          </div></div>
+          <span class="visually-hidden">Freebyrd, a Mac assistant in the notch that sees what you're working on, remembers it on your Mac, and follows through on what you promised. Designed and built end to end, with its explainer film.</span>
         </a>
       </div>
       <span class="cursor-tag" aria-hidden="true">( Open project )</span>
@@ -1286,7 +1297,9 @@
     card.addEventListener('focus', () => toCard(i + 1, 0.6));
     // Clicking should not leave a focus ring or move the row.
     card.addEventListener('mousedown', e => e.preventDefault());
+    // A card without its page yet (an href starting with #) stays put when clicked.
     if (!card.getAttribute('href').startsWith('#')) card.addEventListener('click', e => openCard(e, card, i + 1));
+    else card.addEventListener('click', e => e.preventDefault());
   });
 
   // Opening a project (a card that links to its page): the card's film carries over to the case
